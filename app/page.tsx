@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Trophy, Zap, LogOut, PlusCircle, Star, User, X, Activity, Calendar, Filter, Users, Trash2, Check, Home, Shield, Award, Table, Crown, Layers, LayoutGrid, GripVertical, Save, Sliders, Download, Share2, Sparkles } from 'lucide-react';
+import { Trophy, Zap, LogOut, PlusCircle, Star, User, X, Activity, Calendar, Filter, Users, Trash2, Check, Home, Shield, Award, Table, Crown, Layers, LayoutGrid, GripVertical, Save, Sliders, Download, Share2, Sparkles, UserPlus, RefreshCw, Hash } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { toPng } from 'html-to-image';
 
@@ -247,7 +247,6 @@ const FORMATIONS: Record<string, { size: number; name: string; lines: { role: st
   },
 };
 
-// Tarih Formatlama Yardımcısı: "2026-05-05" -> "05.05.2026"
 const formatDateTR = (dateStr: string) => {
   if (!dateStr) return '';
   const parts = dateStr.split('-');
@@ -258,16 +257,14 @@ const formatDateTR = (dateStr: string) => {
   return dateStr;
 };
 
-// Maç Metni Formatlama: "1. Hafta - 05.05.2026"
 const formatMatchLabel = (match: Match) => {
   const desc = match.description || 'Maç';
   const dateFormatted = formatDateTR(match.match_date);
   return `${desc} - ${dateFormatted}`;
 };
 
-// V-Yaka SVG Forma İkonu Bileşeni
 const JerseyIcon = ({ number, jerseyColor, numberColor }: { number: number; jerseyColor: string; numberColor: string }) => (
-  <div className="relative w-12 h-12 flex items-center justify-center drop-shadow-lg">
+  <div className="relative w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center drop-shadow-lg">
     <svg viewBox="0 0 100 100" className="w-full h-full">
       <path
         d="M 30 15 L 42 22 C 45 25, 55 25, 58 22 L 70 15 L 88 32 L 76 44 L 76 85 C 76 88, 73 90, 70 90 L 30 90 C 27 90, 24 88, 24 85 L 24 44 L 12 32 Z"
@@ -276,11 +273,10 @@ const JerseyIcon = ({ number, jerseyColor, numberColor }: { number: number; jers
         strokeWidth="3.5"
         strokeLinejoin="round"
       />
-      {/* V Yaka Çizgisi */}
       <path d="M 42 22 L 50 32 L 58 22" fill="none" stroke="#1e293b" strokeWidth="3.5" />
     </svg>
     <span
-      className="absolute text-sm font-black tracking-tighter select-none pt-1.5"
+      className="absolute text-xs sm:text-sm font-black tracking-tighter select-none pt-1.5"
       style={{ color: numberColor }}
     >
       {number}
@@ -309,12 +305,16 @@ export default function HomePage() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isPitchModalOpen, setIsPitchModalOpen] = useState(false);
   
-  // Taktik Tahtası (Kendi Kadronu Kur Modu)
+  // Taktik Tahtası Modu
   const [isCustomTacticsMode, setIsCustomTacticsMode] = useState(false);
   const pitchRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
 
-  // Resmi Maç Dizilişi Değişkenleri ile Taktik Tahtası Değişkenleri Ayrıldı
+  // Mobil Pop-up / Action Sheet Durumları
+  const [selectedSlotForMobile, setSelectedSlotForMobile] = useState<{ team: 'A' | 'B'; position: string } | null>(null);
+  const [selectedPlayerForMobile, setSelectedPlayerForMobile] = useState<{ playerId: string; team: 'A' | 'B'; position: string; shirtNumber: number } | null>(null);
+
+  // Resmi Maç vs Custom Taktik Değişkenleri
   const [officialTeamSize, setOfficialTeamSize] = useState<number>(7);
   const [officialFormation, setOfficialFormation] = useState<string>('7-3-3');
 
@@ -334,7 +334,6 @@ export default function HomePage() {
   const [newSeasonName, setNewSeasonName] = useState('');
   const [deletingSeasonId, setDeletingSeasonId] = useState('');
 
-  // Canlı Maç Skoru Durumu (A Takımı - B Takımı)
   const [matchScore, setMatchScore] = useState<{ teamA: number; teamB: number; hasGoals: boolean }>({
     teamA: 0,
     teamB: 0,
@@ -810,6 +809,31 @@ export default function HomePage() {
     }
   };
 
+  // MOBİL DOKUNMA/TIKLAMA İŞLEMLERİ (KODSUZ DÜZENLEME MANTIĞI)
+  const handleAssignPlayerMobile = (playerId: string, team: 'A' | 'B', position: string) => {
+    const updated = [...currentMatchSquadDetails];
+    const targetIndex = updated.findIndex((s) => s.player_id === playerId);
+
+    if (targetIndex !== -1) {
+      updated[targetIndex].team = team;
+      updated[targetIndex].position = position;
+      setCurrentMatchSquadDetails(updated);
+    }
+    setSelectedSlotForMobile(null);
+  };
+
+  const handleRemovePlayerMobile = (playerId: string) => {
+    const updated = [...currentMatchSquadDetails];
+    const targetIndex = updated.findIndex((s) => s.player_id === playerId);
+
+    if (targetIndex !== -1) {
+      updated[targetIndex].team = undefined;
+      updated[targetIndex].position = 'NONE';
+      setCurrentMatchSquadDetails(updated);
+    }
+    setSelectedPlayerForMobile(null);
+  };
+
   const handleUpdateShirtNumber = (playerId: string, currentNum: number = 1) => {
     if (!isAdmin && !isCustomTacticsMode) return;
     const newNumStr = prompt("Yeni forma numarasını girin:", String(currentNum));
@@ -824,6 +848,7 @@ export default function HomePage() {
       return s;
     });
     setCurrentMatchSquadDetails(updated);
+    if (selectedPlayerForMobile) setSelectedPlayerForMobile(null);
   };
 
   const handleUpdateSquadDetails = async () => {
@@ -1027,7 +1052,6 @@ export default function HomePage() {
     (s) => !s.position || s.position === 'NONE'
   );
 
-  // Aktif Moda Göre Değişkenleri Dinamik Kullanma
   const currentActiveTeamSize = isCustomTacticsMode ? customTeamSize : officialTeamSize;
   const currentActiveFormationKey = isCustomTacticsMode ? customFormation : officialFormation;
 
@@ -1121,7 +1145,6 @@ export default function HomePage() {
               <span className="hidden sm:inline">Ana Ekran</span>
             </button>
 
-            {/* KENDİ KADRONU KUR / TAKTİK TAHTASI BUTONU */}
             <button
               onClick={() => handleOpenPitchModal(true)}
               className="flex items-center gap-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition"
@@ -1130,7 +1153,6 @@ export default function HomePage() {
               <span className="hidden sm:inline">Taktik Tahtası</span>
             </button>
 
-            {/* RESMİ SAHA DİZİLİŞİ BUTONU */}
             <button
               onClick={() => handleOpenPitchModal(false)}
               className="flex items-center gap-1.5 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition"
@@ -1161,31 +1183,27 @@ export default function HomePage() {
       {isPitchModalOpen && (
         <DragDropContext onDragEnd={handleDragEnd}>
           <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
-            <div className="bg-slate-900 border border-slate-700 w-full max-w-7xl rounded-3xl p-5 sm:p-6 shadow-2xl relative space-y-5 max-h-[98vh] overflow-y-auto">
+            <div className="bg-slate-900 border border-slate-700 w-full max-w-7xl rounded-3xl p-4 sm:p-6 shadow-2xl relative space-y-4 max-h-[98vh] overflow-y-auto">
               <button
                 onClick={() => setIsPitchModalOpen(false)}
-                className="absolute top-5 right-5 p-2 text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition z-50 shadow-lg"
+                className="absolute top-4 right-4 p-2 text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition z-50 shadow-lg"
               >
                 <X className="w-6 h-6" />
               </button>
 
-              {/* ÜST DÜZENLEME BARI: TEK SATIR (MOD - DİZİLİŞ - İNDİR - PAYLAŞ) */}
+              {/* ÜST DÜZENLEME BARI */}
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-slate-800 pb-4 pr-12 gap-3">
                 <div className="flex items-center gap-2.5">
                   <LayoutGrid className="w-6 h-6 text-emerald-400" />
-                  <h2 className="text-lg sm:text-xl font-bold text-slate-100">
-                    {isCustomTacticsMode ? 'Taktik Tahtası (Kendi Kadronu Kur)' : (isAdmin ? 'Haftalık Saha Dizilişi ve Kadro Yönetimi' : 'Haftalık Takım Saha Dizilişi')}
+                  <h2 className="text-base sm:text-xl font-bold text-slate-100">
+                    {isCustomTacticsMode ? 'Taktik Tahtası (Kendi Kadronu Kur)' : (isAdmin ? 'Haftalık Saha Dizilişi' : 'Haftalık Takım Saha Dizilişi')}
                   </h2>
                 </div>
 
-                {/* SIRALAMA: MOD - DİZİLİŞ - İNDİR - PAYLAŞ */}
-                <div className="flex flex-wrap items-center justify-end gap-2.5 w-full md:w-auto">
-                  
-                  {/* 1. MOD SEÇİCİ */}
+                <div className="flex flex-wrap items-center justify-end gap-2 w-full md:w-auto">
                   {(isAdmin || isCustomTacticsMode) && (
-                    <div className="flex items-center gap-2 bg-slate-800 border border-emerald-500/40 px-3.5 py-2 rounded-xl">
+                    <div className="flex items-center gap-1.5 bg-slate-800 border border-emerald-500/40 px-2.5 py-1.5 rounded-xl">
                       <Users className="w-4 h-4 text-emerald-400" />
-                      <span className="text-xs text-slate-400 hidden sm:inline">Mod:</span>
                       <select
                         value={currentActiveTeamSize}
                         onChange={(e) => {
@@ -1208,11 +1226,9 @@ export default function HomePage() {
                     </div>
                   )}
 
-                  {/* 2. DİZİLİŞ SEÇİCİ */}
                   {(isAdmin || isCustomTacticsMode) && (
-                    <div className="flex items-center gap-2 bg-slate-800 border border-amber-500/40 px-3.5 py-2 rounded-xl">
+                    <div className="flex items-center gap-1.5 bg-slate-800 border border-amber-500/40 px-2.5 py-1.5 rounded-xl">
                       <Sliders className="w-4 h-4 text-amber-400" />
-                      <span className="text-xs text-slate-400 hidden sm:inline">Diziliş:</span>
                       <select
                         value={currentActiveFormationKey}
                         onChange={(e) => {
@@ -1231,11 +1247,9 @@ export default function HomePage() {
                     </div>
                   )}
 
-                  {/* MAÇ SEÇİCİ (RESMİ MODDA HERKESE GÖSTERİLİR) */}
                   {!isCustomTacticsMode && (
-                    <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 px-3.5 py-2 rounded-xl">
+                    <div className="flex items-center gap-1.5 bg-slate-800 border border-slate-700 px-2.5 py-1.5 rounded-xl">
                       <Calendar className="w-4 h-4 text-emerald-400" />
-                      <span className="text-xs text-slate-400 hidden sm:inline">Maç:</span>
                       <select
                         value={adminMatchId}
                         onChange={(e) => {
@@ -1243,7 +1257,7 @@ export default function HomePage() {
                           setAdminMatchId(mId);
                           loadMatchSquadAndAwards(mId);
                         }}
-                        className="bg-transparent text-xs sm:text-sm text-emerald-300 font-bold focus:outline-none cursor-pointer"
+                        className="bg-transparent text-xs sm:text-sm text-emerald-300 font-bold focus:outline-none cursor-pointer max-w-[140px] sm:max-w-none truncate"
                       >
                         {matches.length === 0 && <option value="">Maç Bulunamadı</option>}
                         {matches.map((m) => (
@@ -1255,31 +1269,29 @@ export default function HomePage() {
                     </div>
                   )}
 
-                  {/* ADMIN KAYDET BUTONU */}
                   {isAdmin && !isCustomTacticsMode && (
                     <button
                       onClick={handleUpdateSquadDetails}
-                      className="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold px-4.5 py-2 rounded-xl text-xs sm:text-sm transition shadow-lg whitespace-nowrap"
+                      className="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold px-3 py-1.5 rounded-xl text-xs sm:text-sm transition shadow-lg whitespace-nowrap"
                     >
-                      <Save className="w-4 h-4" /> Dizilişi Kaydet
+                      <Save className="w-4 h-4" /> Kaydet
                     </button>
                   )}
 
-                  {/* 3. İNDİR VE 4. PAYLAŞ BUTONLARI (TAKTİK TAHTASINDA EN SAĞDA) */}
                   {isCustomTacticsMode && (
                     <>
                       <button
                         onClick={handleDownloadPitchImage}
                         disabled={isExporting}
-                        className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold px-3.5 py-2 rounded-xl text-xs sm:text-sm transition shadow-lg whitespace-nowrap disabled:opacity-50"
+                        className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold px-3 py-1.5 rounded-xl text-xs sm:text-sm transition shadow-lg whitespace-nowrap disabled:opacity-50"
                       >
-                        <Download className="w-4 h-4" /> Görsel İndir
+                        <Download className="w-4 h-4" /> İndir
                       </button>
 
                       <button
                         onClick={handleSharePitchImage}
                         disabled={isExporting}
-                        className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold px-3.5 py-2 rounded-xl text-xs sm:text-sm transition shadow-lg whitespace-nowrap disabled:opacity-50"
+                        className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold px-3 py-1.5 rounded-xl text-xs sm:text-sm transition shadow-lg whitespace-nowrap disabled:opacity-50"
                       >
                         <Share2 className="w-4 h-4" /> Paylaş
                       </button>
@@ -1288,20 +1300,15 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* SAHA KANVAS İLE SOL LİSTE */}
+              {/* SAHA VE SOL PANEL DÜZENİ */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
                 
-                {/* SOL PANEL: BOŞTAKİ OYUNCU HAVUZU */}
-                <div className="bg-slate-800/80 border border-slate-700 p-3.5 rounded-2xl md:col-span-1 space-y-3">
+                {/* SOL PANEL: BOŞTAKİ OYUNCU HAVUZU (MOBİLDE GİZLENİR: hidden md:block) */}
+                <div className="hidden md:block bg-slate-800/80 border border-slate-700 p-3.5 rounded-2xl md:col-span-1 space-y-3">
                   <h3 className="text-xs sm:text-sm font-bold text-amber-400 uppercase tracking-wider flex items-center justify-between">
                     <span className="flex items-center gap-1.5"><Users className="w-4 h-4" /> Kadro Havuzu</span>
                     <span className="bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded text-xs">{unassignedPoolPlayers.length} Oyuncu</span>
                   </h3>
-                  <p className="text-[11px] text-slate-300">
-                    {isDragAllowed
-                      ? 'Oyuncu kartını tutup sağdaki sahanın seçilen formasyondaki kutularına sürükleyin.'
-                      : 'Kadroda yedekte bekleyen oyuncular.'}
-                  </p>
 
                   <Droppable droppableId="POOL" isDropDisabled={!isDragAllowed}>
                     {(provided) => (
@@ -1358,43 +1365,54 @@ export default function HomePage() {
                   </Droppable>
                 </div>
 
-                {/* SAĞ PANEL: CANLI HALISAHA */}
-                <div className="bg-slate-900 border border-slate-800 p-3 rounded-3xl md:col-span-3 overflow-x-auto flex justify-center items-center shadow-xl">
-                  {/* RESİM İÇİN YAKALANACAK ALAN (pitchRef) */}
+                {/* SAĞ PANEL: HALISAHA (MASAÜSTÜNDE YATAY, MOBİLDE DİKEY) */}
+                <div className="bg-slate-900 border border-slate-800 p-2 sm:p-3 rounded-3xl md:col-span-3 flex justify-center items-center shadow-xl">
+                  
+                  {/* PITCH REF (EKRAN RESMİ ALINAN ALAN) */}
                   <div
                     ref={pitchRef}
-                    className="relative w-full min-w-[820px] h-[480px] bg-gradient-to-r from-emerald-800 via-emerald-700 to-emerald-800 border-4 border-white rounded-3xl p-3 flex justify-between items-center shadow-2xl overflow-hidden bg-[repeating-linear-gradient(90deg,#055c44,#055c44_45px,#044936_45px,#044936_90px)]"
+                    className="relative w-full 
+                      md:min-w-[820px] md:h-[480px] md:flex-row md:bg-[repeating-linear-gradient(90deg,#055c44,#055c44_45px,#044936_45px,#044936_90px)]
+                      h-[620px] max-w-[380px] flex-col bg-[repeating-linear-gradient(0deg,#055c44,#055c44_45px,#044936_45px,#044936_90px)]
+                      bg-gradient-to-r from-emerald-800 via-emerald-700 to-emerald-800 border-4 border-white rounded-3xl p-2 sm:p-3 flex justify-between items-center shadow-2xl overflow-hidden"
                   >
                     
-                    {/* SADE VE ŞIK SAHA ÜSTÜ SKOR/TAKIM TABELASI */}
-                    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 flex items-center justify-center bg-slate-950/85 text-white border border-slate-700/80 rounded-2xl px-5 py-2 shadow-2xl backdrop-blur-md">
-                      <div className="flex items-center gap-3 text-xs sm:text-sm font-extrabold tracking-wide">
+                    {/* SKOR / TAKIM TABELASI */}
+                    <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30 flex items-center justify-center bg-slate-950/85 text-white border border-slate-700/80 rounded-2xl px-3 py-1 sm:px-5 sm:py-2 shadow-2xl backdrop-blur-md whitespace-nowrap">
+                      <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-sm font-extrabold tracking-wide">
                         <span className="text-slate-100">Beyaz Takım</span>
-                        
-                        <span className="text-white font-black text-xs sm:text-sm px-1">
+                        <span className="text-white font-black text-[10px] sm:text-sm px-1">
                           {isCustomTacticsMode || !matchScore.hasGoals
                             ? 'VS'
                             : `${matchScore.teamA} - ${matchScore.teamB}`}
                         </span>
-
                         <span className="text-slate-100">Siyah Takım</span>
                       </div>
                     </div>
 
-                    {/* SOL KALE */}
-                    <div className="absolute top-1/2 left-0 -translate-y-1/2 w-10 h-36 border-4 border-white bg-white/25 border-l-0 rounded-r-xl z-0"></div>
+                    {/* KALELER (MASAÜSTÜ: SOL/SAĞ, MOBİL: ÜST/ALT) */}
+                    <div className="absolute 
+                      md:top-1/2 md:left-0 md:-translate-y-1/2 md:w-10 md:h-36 md:border-l-0 md:rounded-r-xl
+                      top-0 left-1/2 -translate-x-1/2 h-8 w-28 border-t-0 rounded-b-xl
+                      border-4 border-white bg-white/25 z-0"></div>
                     
-                    {/* SAĞ KALE */}
-                    <div className="absolute top-1/2 right-0 -translate-y-1/2 w-10 h-36 border-4 border-white bg-white/25 border-r-0 rounded-l-xl z-0"></div>
+                    <div className="absolute 
+                      md:top-1/2 md:right-0 md:-translate-y-1/2 md:w-10 md:h-36 md:border-r-0 md:rounded-l-xl
+                      bottom-0 left-1/2 -translate-x-1/2 h-8 w-28 border-b-0 rounded-t-xl
+                      border-4 border-white bg-white/25 z-0"></div>
 
-                    {/* ORTA ÇİZGİ VE YUVARLAK */}
-                    <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-1 bg-white/90 z-0"></div>
-                    <div className="absolute top-1/2 left-1/2 w-32 h-32 border-4 border-white/90 rounded-full -translate-x-1/2 -translate-y-1/2 z-0"></div>
+                    {/* ORTA ÇİZGİ VE YUVARLAK (MASAÜSTÜ: DİKEY, MOBİL: YATAY) */}
+                    <div className="absolute 
+                      md:top-0 md:bottom-0 md:left-1/2 md:-translate-x-1/2 md:w-1 md:h-full
+                      left-0 right-0 top-1/2 -translate-y-1/2 h-1 w-full
+                      bg-white/90 z-0"></div>
+                    
+                    <div className="absolute top-1/2 left-1/2 w-24 h-24 sm:w-32 sm:h-32 border-4 border-white/90 rounded-full -translate-x-1/2 -translate-y-1/2 z-0"></div>
 
-                    {/* BEYAZ FORMA TAKIMI (SOL YARI) */}
-                    <div className="relative z-10 w-1/2 h-full flex justify-around items-center px-3 pt-6">
+                    {/* BEYAZ TAKIM (MASAÜSTÜ: SOL YARI, MOBİL: ÜST YARI) */}
+                    <div className="relative z-10 w-full md:w-1/2 h-1/2 md:h-full flex flex-col md:flex-row justify-around items-center px-1 md:px-3 pt-8 md:pt-6">
                       {activeFormationConfig.lines.map((lineConfig) => (
-                        <div key={`TEAM_A_LINE_${lineConfig.role}`} className="flex flex-col justify-around h-full py-2 items-center gap-1">
+                        <div key={`TEAM_A_LINE_${lineConfig.role}`} className="flex md:flex-col flex-row justify-around w-full md:w-auto h-auto md:h-full py-1 md:py-2 items-center gap-1">
                           {Array.from({ length: lineConfig.count }).map((_, idx) => {
                             const posKey = `${lineConfig.role}_${idx + 1}`;
                             const assignedPlayer = currentMatchSquadDetails.find(
@@ -1408,7 +1426,20 @@ export default function HomePage() {
                                     <div
                                       ref={provided.innerRef}
                                       {...provided.droppableProps}
-                                      className={`w-24 min-h-[64px] rounded-xl flex flex-col items-center justify-center p-1 transition ${
+                                      onClick={() => {
+                                        if (!isDragAllowed) return;
+                                        if (assignedPlayer) {
+                                          setSelectedPlayerForMobile({
+                                            playerId: assignedPlayer.player_id,
+                                            team: 'A',
+                                            position: posKey,
+                                            shirtNumber: assignedPlayer.shirt_number || 1
+                                          });
+                                        } else {
+                                          setSelectedSlotForMobile({ team: 'A', position: posKey });
+                                        }
+                                      }}
+                                      className={`w-20 md:w-24 min-h-[54px] md:min-h-[64px] rounded-xl flex flex-col items-center justify-center p-1 transition cursor-pointer ${
                                         assignedPlayer
                                           ? 'border-0 bg-transparent'
                                           : snapshot.isDraggingOver
@@ -1417,7 +1448,8 @@ export default function HomePage() {
                                       }`}
                                     >
                                       {!assignedPlayer && !snapshot.isDraggingOver && (
-                                        <span className="text-[11px] font-black text-white tracking-wider">
+                                        <span className="text-[10px] sm:text-[11px] font-black text-white tracking-wider flex items-center gap-0.5">
+                                          <UserPlus className="w-3 h-3 md:hidden text-emerald-400" />
                                           {lineConfig.role}
                                         </span>
                                       )}
@@ -1444,13 +1476,18 @@ export default function HomePage() {
                                                   {...provided.dragHandleProps}
                                                   className={`flex flex-col items-center group ${isDragAllowed ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
                                                 >
-                                                  {/* BEYAZ FORMA - SİYAH NUMARA */}
                                                   <div
                                                     onClick={(e) => {
                                                       e.stopPropagation();
-                                                      if (isDragAllowed) handleUpdateShirtNumber(assignedPlayer.player_id, assignedPlayer.shirt_number || 1);
+                                                      if (isDragAllowed) {
+                                                        setSelectedPlayerForMobile({
+                                                          playerId: assignedPlayer.player_id,
+                                                          team: 'A',
+                                                          position: posKey,
+                                                          shirtNumber: assignedPlayer.shirt_number || 1
+                                                        });
+                                                      }
                                                     }}
-                                                    title={isDragAllowed ? "Forma numarasını değiştirmek için tıklayın" : ""}
                                                     className="cursor-pointer hover:scale-110 transition-transform"
                                                   >
                                                     <JerseyIcon
@@ -1459,9 +1496,8 @@ export default function HomePage() {
                                                       numberColor="#0f172a"
                                                     />
                                                   </div>
-                                                  {/* %50 ŞEFFAF SİYAH İSİM KARTI - BEYAZ YAZI */}
                                                   <div
-                                                    className="bg-black/50 text-white font-extrabold text-[9px] px-1.5 py-0.5 rounded-md mt-0.5 shadow-md border border-black/30 backdrop-blur-[2px] text-center leading-tight w-max max-w-[85px]"
+                                                    className="bg-black/50 text-white font-extrabold text-[8px] sm:text-[9px] px-1 py-0.5 rounded-md mt-0.5 shadow-md border border-black/30 backdrop-blur-[2px] text-center leading-tight w-max max-w-[75px] sm:max-w-[85px]"
                                                     title={fullName}
                                                   >
                                                     <div className="truncate">{firstName}</div>
@@ -1484,10 +1520,10 @@ export default function HomePage() {
                       ))}
                     </div>
 
-                    {/* SİYAH FORMA TAKIMI (SAĞ YARI) */}
-                    <div className="relative z-10 w-1/2 h-full flex justify-around items-center px-3 pt-6">
+                    {/* SİYAH TAKIM (MASAÜSTÜ: SAĞ YARI, MOBİL: ALT YARI) */}
+                    <div className="relative z-10 w-full md:w-1/2 h-1/2 md:h-full flex flex-col md:flex-row justify-around items-center px-1 md:px-3 pb-4 md:pb-0 md:pt-6">
                       {[...activeFormationConfig.lines].reverse().map((lineConfig) => (
-                        <div key={`TEAM_B_LINE_${lineConfig.role}`} className="flex flex-col justify-around h-full py-2 items-center gap-1">
+                        <div key={`TEAM_B_LINE_${lineConfig.role}`} className="flex md:flex-col flex-row justify-around w-full md:w-auto h-auto md:h-full py-1 md:py-2 items-center gap-1">
                           {Array.from({ length: lineConfig.count }).map((_, idx) => {
                             const posKey = `${lineConfig.role}_${idx + 1}`;
                             const assignedPlayer = currentMatchSquadDetails.find(
@@ -1501,7 +1537,20 @@ export default function HomePage() {
                                     <div
                                       ref={provided.innerRef}
                                       {...provided.droppableProps}
-                                      className={`w-24 min-h-[64px] rounded-xl flex flex-col items-center justify-center p-1 transition ${
+                                      onClick={() => {
+                                        if (!isDragAllowed) return;
+                                        if (assignedPlayer) {
+                                          setSelectedPlayerForMobile({
+                                            playerId: assignedPlayer.player_id,
+                                            team: 'B',
+                                            position: posKey,
+                                            shirtNumber: assignedPlayer.shirt_number || 2
+                                          });
+                                        } else {
+                                          setSelectedSlotForMobile({ team: 'B', position: posKey });
+                                        }
+                                      }}
+                                      className={`w-20 md:w-24 min-h-[54px] md:min-h-[64px] rounded-xl flex flex-col items-center justify-center p-1 transition cursor-pointer ${
                                         assignedPlayer
                                           ? 'border-0 bg-transparent'
                                           : snapshot.isDraggingOver
@@ -1510,7 +1559,8 @@ export default function HomePage() {
                                       }`}
                                     >
                                       {!assignedPlayer && !snapshot.isDraggingOver && (
-                                        <span className="text-[11px] font-black text-white tracking-wider">
+                                        <span className="text-[10px] sm:text-[11px] font-black text-white tracking-wider flex items-center gap-0.5">
+                                          <UserPlus className="w-3 h-3 md:hidden text-emerald-400" />
                                           {lineConfig.role}
                                         </span>
                                       )}
@@ -1537,13 +1587,18 @@ export default function HomePage() {
                                                   {...provided.dragHandleProps}
                                                   className={`flex flex-col items-center group ${isDragAllowed ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
                                                 >
-                                                  {/* SİYAH FORMA - BEYAZ NUMARA */}
                                                   <div
                                                     onClick={(e) => {
                                                       e.stopPropagation();
-                                                      if (isDragAllowed) handleUpdateShirtNumber(assignedPlayer.player_id, assignedPlayer.shirt_number || 2);
+                                                      if (isDragAllowed) {
+                                                        setSelectedPlayerForMobile({
+                                                          playerId: assignedPlayer.player_id,
+                                                          team: 'B',
+                                                          position: posKey,
+                                                          shirtNumber: assignedPlayer.shirt_number || 2
+                                                        });
+                                                      }
                                                     }}
-                                                    title={isDragAllowed ? "Forma numarasını değiştirmek için tıklayın" : ""}
                                                     className="cursor-pointer hover:scale-110 transition-transform"
                                                   >
                                                     <JerseyIcon
@@ -1552,9 +1607,8 @@ export default function HomePage() {
                                                       numberColor="#ffffff"
                                                     />
                                                   </div>
-                                                  {/* %50 ŞEFFAF SİYAH İSİM KARTI - BEYAZ YAZI */}
                                                   <div
-                                                    className="bg-black/50 text-white font-extrabold text-[9px] px-1.5 py-0.5 rounded-md mt-0.5 shadow-md border border-black/30 backdrop-blur-[2px] text-center leading-tight w-max max-w-[85px]"
+                                                    className="bg-black/50 text-white font-extrabold text-[8px] sm:text-[9px] px-1 py-0.5 rounded-md mt-0.5 shadow-md border border-black/30 backdrop-blur-[2px] text-center leading-tight w-max max-w-[75px] sm:max-w-[85px]"
                                                     title={fullName}
                                                   >
                                                     <div className="truncate">{firstName}</div>
@@ -1591,6 +1645,102 @@ export default function HomePage() {
             </div>
           </div>
         </DragDropContext>
+      )}
+
+      {/* MOBİL İÇİN BOŞ POZİSYONA TIKLANDIĞINDA AÇILAN OYUNCU SEÇİM PANELERİ (ACTION SHEET) */}
+      {selectedSlotForMobile && (
+        <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
+          <div className="bg-slate-900 border border-slate-700 w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-amber-400 flex items-center gap-2">
+                <UserPlus className="w-5 h-5" /> Oyuncu Seçin ({selectedSlotForMobile.position})
+              </h3>
+              <button onClick={() => setSelectedSlotForMobile(null)} className="p-1 text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {unassignedPoolPlayers.length === 0 ? (
+                <p className="text-sm text-slate-400 text-center py-4">Tüm oyuncular kadroya alındı!</p>
+              ) : (
+                unassignedPoolPlayers.map((sDetail) => {
+                  const pObj = allProfiles.find((p) => p.id === sDetail.player_id);
+                  const fullName = pObj?.full_name || pObj?.username || 'İsimsiz Oyuncu';
+
+                  return (
+                    <button
+                      key={sDetail.player_id}
+                      onClick={() => handleAssignPlayerMobile(sDetail.player_id, selectedSlotForMobile.team, selectedSlotForMobile.position)}
+                      className="w-full bg-slate-800/80 hover:bg-emerald-600/20 hover:border-emerald-500 border border-slate-700 p-3 rounded-xl flex items-center justify-between transition text-left"
+                    >
+                      <span className="font-bold text-sm text-slate-100">{fullName}</span>
+                      <span className="text-xs text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded">Seç</span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MOBİL İÇİN DOLU POZİSYONA TIKLANDIĞINDA AÇILAN İŞLEM MENÜSÜ */}
+      {selectedPlayerForMobile && (
+        <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
+          <div className="bg-slate-900 border border-slate-700 w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-slate-100">
+                  {allProfiles.find(p => p.id === selectedPlayerForMobile.playerId)?.full_name || 'Oyuncu İşlemleri'}
+                </h3>
+                <p className="text-xs text-slate-400">Yapmak istediğiniz işlemi seçin</p>
+              </div>
+              <button onClick={() => setSelectedPlayerForMobile(null)} className="p-1 text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2.5">
+              <button
+                onClick={() => handleUpdateShirtNumber(selectedPlayerForMobile.playerId, selectedPlayerForMobile.shirtNumber)}
+                className="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 p-3.5 rounded-xl flex items-center gap-3 transition text-left"
+              >
+                <Hash className="w-5 h-5 text-amber-400" />
+                <div>
+                  <div className="font-bold text-sm text-slate-100">Forma Numarasını Değiştir</div>
+                  <div className="text-xs text-slate-400">Şu anki: #{selectedPlayerForMobile.shirtNumber}</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  const targetSlot = { team: selectedPlayerForMobile.team, position: selectedPlayerForMobile.position };
+                  handleRemovePlayerMobile(selectedPlayerForMobile.playerId);
+                  setSelectedSlotForMobile(targetSlot);
+                }}
+                className="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 p-3.5 rounded-xl flex items-center gap-3 transition text-left"
+              >
+                <RefreshCw className="w-5 h-5 text-blue-400" />
+                <div>
+                  <div className="font-bold text-sm text-slate-100">Başka Oyuncuyla Değiştir</div>
+                  <div className="text-xs text-slate-400">Açılan listeden yeni oyuncu seçilir</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => handleRemovePlayerMobile(selectedPlayerForMobile.playerId)}
+                className="w-full bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 p-3.5 rounded-xl flex items-center gap-3 transition text-left"
+              >
+                <Trash2 className="w-5 h-5 text-rose-400" />
+                <div>
+                  <div className="font-bold text-sm text-rose-300">Kadrodan Çıkar</div>
+                  <div className="text-xs text-rose-400/80">Oyuncu boşa çıkarılır (kadro havuzuna döner)</div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* PROFİL MODALİ */}
@@ -1681,7 +1831,6 @@ export default function HomePage() {
               </select>
             </div>
 
-            {/* ANA EKRAN MAÇ FİLTRESİ */}
             <div className="w-full sm:w-auto flex items-center gap-1.5">
               <Calendar className="w-4 h-4 text-slate-400 hidden sm:block" />
               <select
@@ -1716,7 +1865,6 @@ export default function HomePage() {
               </button>
             </div>
 
-            {/* SEZON YÖNETİMİ */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-slate-800/40 p-3.5 rounded-xl border border-slate-800 space-y-2">
                 <label className="block text-xs font-bold text-amber-400 flex items-center gap-1.5 uppercase">
