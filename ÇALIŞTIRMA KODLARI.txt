@@ -1,0 +1,9 @@
+cd "C:\Users\GNYS\Desktop\halisaha-app"
+
+npm run dev
+
+CTRL+C
+
+
+
+halisaha.guneysu@gmail.com
