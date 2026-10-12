@@ -927,36 +927,32 @@ export default function HomePage() {
 
     setLoading(true);
 
-    for (const def of statDefs) {
+    const upsertData = statDefs.map((def) => {
       const val = inputStats[def.key] ?? 0;
+      return {
+        player_id: selectedPlayerId,
+        stat_id: def.id,
+        match_id: adminMatchId,
+        value: val,
+        updated_at: new Date().toISOString(),
+      };
+    });
 
-      const { data: existing } = await supabase
-        .from('player_stats')
-        .select('id')
-        .eq('player_id', selectedPlayerId)
-        .eq('stat_id', def.id)
-        .eq('match_id', adminMatchId)
-        .maybeSingle();
+    const { error } = await supabase
+      .from('player_stats')
+      .upsert(upsertData, { onConflict: 'player_id,match_id,stat_id' });
 
-      if (existing) {
-        await supabase
-          .from('player_stats')
-          .update({ value: val, updated_at: new Date().toISOString() })
-          .eq('id', existing.id);
-      } else {
-        await supabase.from('player_stats').insert({
-          player_id: selectedPlayerId,
-          stat_id: def.id,
-          match_id: adminMatchId,
-          value: val,
-        });
-      }
+    if (error) {
+      console.error('İstatistik kaydetme hatası:', error.message);
+      alert('İstatistikler kaydedilirken bir hata oluştu: ' + error.message);
+    } else {
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+      await loadInitialData();
+      await loadMatchSquadAndAwards(adminMatchId);
     }
 
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 3000);
-    await loadInitialData();
-    await loadMatchSquadAndAwards(adminMatchId);
+    setLoading(false);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
