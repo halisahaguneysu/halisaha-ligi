@@ -2127,10 +2127,10 @@ export default function HomePage() {
                 <h3 className="font-bold">Gol Krallığı</h3>
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
               {[...playersData]
+                .filter(p => (p.stats['goals'] || 0) > 0)
                 .sort((a, b) => (b.stats['goals'] || 0) - (a.stats['goals'] || 0))
-                .slice(0, 5)
                 .map((p, index) => (
                   <div key={p.profile.id} className="flex justify-between items-center p-2.5 bg-slate-800/40 rounded-xl">
                     <div className="flex items-center gap-3">
@@ -2144,6 +2144,9 @@ export default function HomePage() {
                     </span>
                   </div>
                 ))}
+              {playersData.filter(p => (p.stats['goals'] || 0) > 0).length === 0 && (
+                <p className="text-xs text-slate-500 text-center py-4">Henüz gol atılmadı.</p>
+              )}
             </div>
           </div>
 
@@ -2154,10 +2157,10 @@ export default function HomePage() {
                 <h3 className="font-bold">Asist Krallığı</h3>
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
               {[...playersData]
+                .filter(p => (p.stats['assists'] || 0) > 0)
                 .sort((a, b) => (b.stats['assists'] || 0) - (a.stats['assists'] || 0))
-                .slice(0, 5)
                 .map((p, index) => (
                   <div key={p.profile.id} className="flex justify-between items-center p-2.5 bg-slate-800/40 rounded-xl">
                     <div className="flex items-center gap-3">
@@ -2171,6 +2174,9 @@ export default function HomePage() {
                     </span>
                   </div>
                 ))}
+              {playersData.filter(p => (p.stats['assists'] || 0) > 0).length === 0 && (
+                <p className="text-xs text-slate-500 text-center py-4">Henüz asist yapılmadı.</p>
+              )}
             </div>
           </div>
         </section>
@@ -2193,11 +2199,11 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="overflow-x-auto relative">
+          <div className="overflow-x-auto relative max-h-[420px] overflow-y-auto">
             <table className="w-full text-left text-sm border-collapse">
-              <thead className="bg-slate-800/80 text-slate-400 uppercase text-[11px] tracking-wider sticky top-0 z-20">
+              <thead className="bg-slate-800/90 text-slate-400 uppercase text-[11px] tracking-wider sticky top-0 z-30">
                 <tr>
-                  <th className="py-3.5 px-4 font-semibold sticky left-0 bg-slate-800 z-30 shadow-r border-b border-slate-700/50 min-w-[160px]">
+                  <th className="py-3.5 px-4 font-semibold sticky left-0 bg-slate-800 z-40 shadow-r border-b border-slate-700/50 min-w-[160px]">
                     # Oyuncu
                   </th>
                   
@@ -2254,7 +2260,7 @@ export default function HomePage() {
                             : 'bg-slate-800/20 hover:bg-slate-800/50'
                         }`}
                       >
-                        <td className={`py-3 px-4 whitespace-nowrap sticky left-0 z-10 border-r border-slate-800/60 transition ${isSelf ? 'bg-emerald-950 text-green-300' : 'bg-slate-900'}`}>
+                        <td className={`py-3 px-4 whitespace-nowrap sticky left-0 z-20 border-r border-slate-800/60 transition ${isSelf ? 'bg-emerald-950 text-green-300' : 'bg-slate-900'}`}>
                           <div className="flex items-center gap-2.5">
                             <span className={`text-xs font-mono w-5 ${index < 3 ? 'text-amber-400 font-bold' : 'text-slate-500'}`}>
                               {index + 1}.
