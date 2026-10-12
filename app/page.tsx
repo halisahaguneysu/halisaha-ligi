@@ -1361,7 +1361,7 @@ export default function HomePage() {
                   </Droppable>
                 </div>
 
-                {/* SAĞ PANEL: HALISAHA (MOBİLDE DİKEY, MASAÜSTÜNDE KUSURSUZ YATAY GÖRÜNÜM) */}
+                {/* SAĞ PANEL: HALISAHA */}
                 <div className="bg-slate-900 border border-slate-800 p-2 sm:p-3 rounded-3xl md:col-span-3 flex justify-center items-center shadow-xl">
                   
                   {/* PITCH REF */}
@@ -1386,24 +1386,29 @@ export default function HomePage() {
                       </div>
                     </div>
 
-                    {/* KALELER (MOBİL: ÜST/ALT, MASAÜSTÜ: SOL/SAĞ) */}
-                    <div className="absolute 
-                      top-0 left-1/2 -translate-x-1/2 h-8 w-28 border-t-0 rounded-b-xl
-                      md:top-1/2 md:left-0 md:-translate-y-1/2 md:w-10 md:h-36 md:border-l-0 md:rounded-r-xl md:border-t-4 md:border-b-4 md:translate-x-0
-                      border-4 border-white bg-white/25 z-0"></div>
-                    
-                    <div className="absolute 
-                      bottom-0 left-1/2 -translate-x-1/2 h-8 w-28 border-b-0 rounded-t-xl
-                      md:top-1/2 md:right-0 md:-translate-y-1/2 md:w-10 md:h-36 md:border-r-0 md:rounded-l-xl md:border-t-4 md:border-b-4 md:translate-x-0
-                      border-4 border-white bg-white/25 z-0"></div>
+                    {/* MASAÜSTÜ SAHA ÇİZGİLERİ (SADECE MASAÜSTÜNDE GÖRÜNÜR) */}
+                    <div className="hidden md:block">
+                      {/* Sol Kale */}
+                      <div className="absolute top-1/2 left-0 -translate-y-1/2 w-10 h-36 border-4 border-l-0 border-white rounded-r-xl bg-white/25 z-0"></div>
+                      {/* Sağ Kale */}
+                      <div className="absolute top-1/2 right-0 -translate-y-1/2 w-10 h-36 border-4 border-r-0 border-white rounded-l-xl bg-white/25 z-0"></div>
+                      {/* Dikey Orta Çizgi */}
+                      <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[4px] bg-white/90 z-0"></div>
+                      {/* Orta Yuvarlak */}
+                      <div className="absolute top-1/2 left-1/2 w-32 h-32 border-4 border-white/90 rounded-full -translate-x-1/2 -translate-y-1/2 z-0"></div>
+                    </div>
 
-                    {/* ORTA ÇİZGİ (MOBİL: YATAY, MASAÜSTÜ: DİKEY) */}
-                    <div className="absolute 
-                      left-0 right-0 top-1/2 -translate-y-1/2 h-[4px] w-full
-                      md:top-0 md:bottom-0 md:left-1/2 md:-translate-x-1/2 md:w-[4px] md:h-full md:w-auto md:right-auto md:translate-y-0
-                      bg-white/90 z-0"></div>
-                    
-                    <div className="absolute top-1/2 left-1/2 w-24 h-24 md:w-32 md:h-32 border-4 border-white/90 rounded-full -translate-x-1/2 -translate-y-1/2 z-0"></div>
+                    {/* MOBİL SAHA ÇİZGİLERİ (SADECE MOBİLDE GÖRÜNÜR) */}
+                    <div className="block md:hidden">
+                      {/* Üst Kale */}
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 h-8 w-28 border-4 border-t-0 border-white rounded-b-xl bg-white/25 z-0"></div>
+                      {/* Alt Kale */}
+                      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-8 w-28 border-4 border-b-0 border-white rounded-t-xl bg-white/25 z-0"></div>
+                      {/* Yatay Orta Çizgi */}
+                      <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[4px] w-full bg-white/90 z-0"></div>
+                      {/* Orta Yuvarlak */}
+                      <div className="absolute top-1/2 left-1/2 w-24 h-24 border-4 border-white/90 rounded-full -translate-x-1/2 -translate-y-1/2 z-0"></div>
+                    </div>
 
                     {/* BEYAZ TAKIM */}
                     <div className="relative z-10 w-full md:w-1/2 h-1/2 md:h-full flex flex-col md:flex-row justify-around items-center px-1 md:px-3 pt-6 md:pt-6">
@@ -2151,7 +2156,7 @@ export default function HomePage() {
             </div>
             <div className="space-y-2">
               {[...playersData]
-                .sort((a, b) => (b.stats['assists'] || 0) - (b.stats['assists'] || 0))
+                .sort((a, b) => (b.stats['assists'] || 0) - (a.stats['assists'] || 0))
                 .slice(0, 5)
                 .map((p, index) => (
                   <div key={p.profile.id} className="flex justify-between items-center p-2.5 bg-slate-800/40 rounded-xl">
