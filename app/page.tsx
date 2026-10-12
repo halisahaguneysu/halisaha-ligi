@@ -305,16 +305,13 @@ export default function HomePage() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isPitchModalOpen, setIsPitchModalOpen] = useState(false);
   
-  // Taktik Tahtası Modu
   const [isCustomTacticsMode, setIsCustomTacticsMode] = useState(false);
   const pitchRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
 
-  // Mobil Pop-up / Action Sheet Durumları
   const [selectedSlotForMobile, setSelectedSlotForMobile] = useState<{ team: 'A' | 'B'; position: string } | null>(null);
   const [selectedPlayerForMobile, setSelectedPlayerForMobile] = useState<{ playerId: string; team: 'A' | 'B'; position: string; shirtNumber: number } | null>(null);
 
-  // Resmi Maç vs Custom Taktik Değişkenleri
   const [officialTeamSize, setOfficialTeamSize] = useState<number>(7);
   const [officialFormation, setOfficialFormation] = useState<string>('7-3-3');
 
@@ -809,7 +806,6 @@ export default function HomePage() {
     }
   };
 
-  // MOBİL DOKUNMA/TIKLAMA İŞLEMLERİ
   const handleAssignPlayerMobile = (playerId: string, team: 'A' | 'B', position: string) => {
     const updated = [...currentMatchSquadDetails];
     const targetIndex = updated.findIndex((s) => s.player_id === playerId);
@@ -1365,19 +1361,20 @@ export default function HomePage() {
                   </Droppable>
                 </div>
 
-                {/* SAĞ PANEL: HALISAHA (MASAÜSTÜ: ORİJİNAL YATAY KANVAS, MOBİL: DİKEY KANVAS) */}
+                {/* SAĞ PANEL: HALISAHA (PITCHREF - İNDİRME VE PAYLAŞMA İÇİN ORTAK KANVAS) */}
                 <div className="bg-slate-900 border border-slate-800 p-2 sm:p-3 rounded-3xl md:col-span-3 flex justify-center items-center shadow-xl">
                   
-                  {/* PITCH REF (EKRAN RESMİ ALINAN ALAN) */}
+                  {/* PITCH REF (ORTAK KANVAS - MOBİL VE MASAÜSTÜNDE SORUNSUZ GÖRÜNTÜ YAKALAMA) */}
                   <div
                     ref={pitchRef}
                     className="relative w-full 
-                      hidden md:flex md:min-w-[820px] md:h-[480px] md:flex-row md:bg-[repeating-linear-gradient(90deg,#055c44,#055c44_45px,#044936_45px,#044936_90px)]
-                      bg-gradient-to-r from-emerald-800 via-emerald-700 to-emerald-800 border-4 border-white rounded-3xl p-3 justify-between items-center shadow-2xl overflow-hidden"
+                      md:min-w-[820px] md:h-[480px] md:flex-row md:bg-[repeating-linear-gradient(90deg,#055c44,#055c44_45px,#044936_45px,#044936_90px)]
+                      max-w-[380px] h-[620px] flex flex-col bg-[repeating-linear-gradient(0deg,#055c44,#055c44_45px,#044936_45px,#044936_90px)]
+                      bg-gradient-to-r from-emerald-800 via-emerald-700 to-emerald-800 border-4 border-white rounded-3xl p-2 md:p-3 justify-between items-center shadow-2xl overflow-hidden"
                   >
                     
-                    {/* MASAÜSTÜ SKOR / TAKIM TABELASI */}
-                    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 flex items-center justify-center bg-slate-950/85 text-white border border-slate-700/80 rounded-2xl px-5 py-2 shadow-2xl backdrop-blur-md whitespace-nowrap">
+                    {/* SKOR / TAKIM TABELASI (SADECE MASAÜSTÜNDE GÖRÜNÜR: hidden md:flex) */}
+                    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 hidden md:flex items-center justify-center bg-slate-950/85 text-white border border-slate-700/80 rounded-2xl px-5 py-2 shadow-2xl backdrop-blur-md whitespace-nowrap">
                       <div className="flex items-center gap-3 text-sm font-extrabold tracking-wide">
                         <span className="text-slate-100">Beyaz Takım</span>
                         <span className="text-white font-black text-sm px-1">
@@ -1389,18 +1386,29 @@ export default function HomePage() {
                       </div>
                     </div>
 
-                    {/* MASAÜSTÜ KALELER (SOL & SAĞ) */}
-                    <div className="absolute top-1/2 left-0 -translate-y-1/2 w-10 h-36 border-4 border-white bg-white/25 border-l-0 rounded-r-xl z-0"></div>
-                    <div className="absolute top-1/2 right-0 -translate-y-1/2 w-10 h-36 border-4 border-white bg-white/25 border-r-0 rounded-l-xl z-0"></div>
+                    {/* KALELER (MASAÜSTÜ: SOL/SAĞ, MOBİL: ÜST/ALT) */}
+                    <div className="absolute 
+                      md:top-1/2 md:left-0 md:-translate-y-1/2 md:w-10 md:h-36 md:border-l-0 md:rounded-r-xl md:border-t-4 md:border-b-4
+                      top-0 left-1/2 -translate-x-1/2 h-8 w-28 border-t-0 rounded-b-xl
+                      border-4 border-white bg-white/25 z-0"></div>
+                    
+                    <div className="absolute 
+                      md:top-1/2 md:right-0 md:-translate-y-1/2 md:w-10 md:h-36 md:border-r-0 md:rounded-l-xl md:border-t-4 md:border-b-4
+                      bottom-0 left-1/2 -translate-x-1/2 h-8 w-28 border-b-0 rounded-t-xl
+                      border-4 border-white bg-white/25 z-0"></div>
 
-                    {/* MASAÜSTÜ ORTA ÇİZGİ VE YUVARLAK */}
-                    <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-1 bg-white/90 z-0"></div>
-                    <div className="absolute top-1/2 left-1/2 w-32 h-32 border-4 border-white/90 rounded-full -translate-x-1/2 -translate-y-1/2 z-0"></div>
+                    {/* ORTA ÇİZGİ VE YUVARLAK (MASAÜSTÜ: DİKEY, MOBİL: YATAY) */}
+                    <div className="absolute 
+                      md:top-0 md:bottom-0 md:left-1/2 md:-translate-x-1/2 md:w-1 md:h-full md:w-1 md:w-[4px]
+                      left-0 right-0 top-1/2 -translate-y-1/2 h-[4px] w-full
+                      bg-white/90 z-0"></div>
+                    
+                    <div className="absolute top-1/2 left-1/2 w-24 h-24 md:w-32 md:h-32 border-4 border-white/90 rounded-full -translate-x-1/2 -translate-y-1/2 z-0"></div>
 
-                    {/* MASAÜSTÜ BEYAZ TAKIM (SOL YARI) */}
-                    <div className="relative z-10 w-1/2 h-full flex justify-around items-center px-3 pt-6">
+                    {/* BEYAZ TAKIM (MASAÜSTÜ: SOL YARI, MOBİL: ÜST YARI) */}
+                    <div className="relative z-10 w-full md:w-1/2 h-1/2 md:h-full flex flex-col md:flex-row justify-around items-center px-1 md:px-3 pt-6 md:pt-6">
                       {activeFormationConfig.lines.map((lineConfig) => (
-                        <div key={`DESK_A_LINE_${lineConfig.role}`} className="flex flex-col justify-around h-full py-2 items-center gap-1">
+                        <div key={`TEAM_A_LINE_${lineConfig.role}`} className="flex flex-row md:flex-col justify-around w-full md:w-auto h-auto md:h-full py-1 md:py-2 items-center gap-1">
                           {Array.from({ length: lineConfig.count }).map((_, idx) => {
                             const posKey = `${lineConfig.role}_${idx + 1}`;
                             const assignedPlayer = currentMatchSquadDetails.find(
@@ -1408,13 +1416,26 @@ export default function HomePage() {
                             );
 
                             return (
-                              <div key={`DESK_A_${posKey}`} className="flex flex-col items-center">
+                              <div key={`TEAM_A_${posKey}`} className="flex flex-col items-center">
                                 <Droppable droppableId={`TEAM_A_${posKey}`} isDropDisabled={!isDragAllowed}>
                                   {(provided, snapshot) => (
                                     <div
                                       ref={provided.innerRef}
                                       {...provided.droppableProps}
-                                      className={`w-24 min-h-[64px] rounded-xl flex flex-col items-center justify-center p-1 transition ${
+                                      onClick={() => {
+                                        if (!isDragAllowed) return;
+                                        if (assignedPlayer) {
+                                          setSelectedPlayerForMobile({
+                                            playerId: assignedPlayer.player_id,
+                                            team: 'A',
+                                            position: posKey,
+                                            shirtNumber: assignedPlayer.shirt_number || 1
+                                          });
+                                        } else {
+                                          setSelectedSlotForMobile({ team: 'A', position: posKey });
+                                        }
+                                      }}
+                                      className={`w-20 md:w-24 min-h-[52px] md:min-h-[64px] rounded-xl flex flex-col items-center justify-center p-1 transition cursor-pointer ${
                                         assignedPlayer
                                           ? 'border-0 bg-transparent'
                                           : snapshot.isDraggingOver
@@ -1423,7 +1444,8 @@ export default function HomePage() {
                                       }`}
                                     >
                                       {!assignedPlayer && !snapshot.isDraggingOver && (
-                                        <span className="text-[11px] font-black text-white tracking-wider">
+                                        <span className="text-[10px] md:text-[11px] font-black text-white tracking-wider flex items-center gap-0.5">
+                                          <UserPlus className="w-3 h-3 md:hidden text-emerald-400" />
                                           {lineConfig.role}
                                         </span>
                                       )}
@@ -1453,9 +1475,15 @@ export default function HomePage() {
                                                   <div
                                                     onClick={(e) => {
                                                       e.stopPropagation();
-                                                      if (isDragAllowed) handleUpdateShirtNumber(assignedPlayer.player_id, assignedPlayer.shirt_number || 1);
+                                                      if (isDragAllowed) {
+                                                        setSelectedPlayerForMobile({
+                                                          playerId: assignedPlayer.player_id,
+                                                          team: 'A',
+                                                          position: posKey,
+                                                          shirtNumber: assignedPlayer.shirt_number || 1
+                                                        });
+                                                      }
                                                     }}
-                                                    title={isDragAllowed ? "Forma numarasını değiştirmek için tıklayın" : ""}
                                                     className="cursor-pointer hover:scale-110 transition-transform"
                                                   >
                                                     <JerseyIcon
@@ -1465,7 +1493,7 @@ export default function HomePage() {
                                                     />
                                                   </div>
                                                   <div
-                                                    className="bg-black/50 text-white font-extrabold text-[9px] px-1.5 py-0.5 rounded-md mt-0.5 shadow-md border border-black/30 backdrop-blur-[2px] text-center leading-tight w-max max-w-[85px]"
+                                                    className="bg-black/50 text-white font-extrabold text-[8px] md:text-[9px] px-1 py-0.5 rounded-md mt-0.5 shadow-md border border-black/30 backdrop-blur-[2px] text-center leading-tight w-max max-w-[75px] md:max-w-[85px]"
                                                     title={fullName}
                                                   >
                                                     <div className="truncate">{firstName}</div>
@@ -1488,10 +1516,10 @@ export default function HomePage() {
                       ))}
                     </div>
 
-                    {/* MASAÜSTÜ SİYAH TAKIM (SAĞ YARI) */}
-                    <div className="relative z-10 w-1/2 h-full flex justify-around items-center px-3 pt-6">
+                    {/* SİYAH TAKIM (MASAÜSTÜ: SAĞ YARI, MOBİL: ALT YARI) */}
+                    <div className="relative z-10 w-full md:w-1/2 h-1/2 md:h-full flex flex-col md:flex-row justify-around items-center px-1 md:px-3 pb-4 md:pb-0 md:pt-6">
                       {[...activeFormationConfig.lines].reverse().map((lineConfig) => (
-                        <div key={`DESK_B_LINE_${lineConfig.role}`} className="flex flex-col justify-around h-full py-2 items-center gap-1">
+                        <div key={`TEAM_B_LINE_${lineConfig.role}`} className="flex flex-row md:flex-col justify-around w-full md:w-auto h-auto md:h-full py-1 md:py-2 items-center gap-1">
                           {Array.from({ length: lineConfig.count }).map((_, idx) => {
                             const posKey = `${lineConfig.role}_${idx + 1}`;
                             const assignedPlayer = currentMatchSquadDetails.find(
@@ -1499,13 +1527,26 @@ export default function HomePage() {
                             );
 
                             return (
-                              <div key={`DESK_B_${posKey}`} className="flex flex-col items-center">
+                              <div key={`TEAM_B_${posKey}`} className="flex flex-col items-center">
                                 <Droppable droppableId={`TEAM_B_${posKey}`} isDropDisabled={!isDragAllowed}>
                                   {(provided, snapshot) => (
                                     <div
                                       ref={provided.innerRef}
                                       {...provided.droppableProps}
-                                      className={`w-24 min-h-[64px] rounded-xl flex flex-col items-center justify-center p-1 transition ${
+                                      onClick={() => {
+                                        if (!isDragAllowed) return;
+                                        if (assignedPlayer) {
+                                          setSelectedPlayerForMobile({
+                                            playerId: assignedPlayer.player_id,
+                                            team: 'B',
+                                            position: posKey,
+                                            shirtNumber: assignedPlayer.shirt_number || 2
+                                          });
+                                        } else {
+                                          setSelectedSlotForMobile({ team: 'B', position: posKey });
+                                        }
+                                      }}
+                                      className={`w-20 md:w-24 min-h-[52px] md:min-h-[64px] rounded-xl flex flex-col items-center justify-center p-1 transition cursor-pointer ${
                                         assignedPlayer
                                           ? 'border-0 bg-transparent'
                                           : snapshot.isDraggingOver
@@ -1514,7 +1555,8 @@ export default function HomePage() {
                                       }`}
                                     >
                                       {!assignedPlayer && !snapshot.isDraggingOver && (
-                                        <span className="text-[11px] font-black text-white tracking-wider">
+                                        <span className="text-[10px] md:text-[11px] font-black text-white tracking-wider flex items-center gap-0.5">
+                                          <UserPlus className="w-3 h-3 md:hidden text-emerald-400" />
                                           {lineConfig.role}
                                         </span>
                                       )}
@@ -1544,9 +1586,15 @@ export default function HomePage() {
                                                   <div
                                                     onClick={(e) => {
                                                       e.stopPropagation();
-                                                      if (isDragAllowed) handleUpdateShirtNumber(assignedPlayer.player_id, assignedPlayer.shirt_number || 2);
+                                                      if (isDragAllowed) {
+                                                        setSelectedPlayerForMobile({
+                                                          playerId: assignedPlayer.player_id,
+                                                          team: 'B',
+                                                          position: posKey,
+                                                          shirtNumber: assignedPlayer.shirt_number || 2
+                                                        });
+                                                      }
                                                     }}
-                                                    title={isDragAllowed ? "Forma numarasını değiştirmek için tıklayın" : ""}
                                                     className="cursor-pointer hover:scale-110 transition-transform"
                                                   >
                                                     <JerseyIcon
@@ -1556,7 +1604,7 @@ export default function HomePage() {
                                                     />
                                                   </div>
                                                   <div
-                                                    className="bg-black/50 text-white font-extrabold text-[9px] px-1.5 py-0.5 rounded-md mt-0.5 shadow-md border border-black/30 backdrop-blur-[2px] text-center leading-tight w-max max-w-[85px]"
+                                                    className="bg-black/50 text-white font-extrabold text-[8px] md:text-[9px] px-1.5 py-0.5 rounded-md mt-0.5 shadow-md border border-black/30 backdrop-blur-[2px] text-center leading-tight w-max max-w-[75px] md:max-w-[85px]"
                                                     title={fullName}
                                                   >
                                                     <div className="truncate">{firstName}</div>
@@ -1580,172 +1628,6 @@ export default function HomePage() {
                     </div>
 
                   </div>
-
-                  {/* MOBİL ÖZEL DİKEY KANVAS (SADECE KÜÇÜK EKRANLARDA GÖRÜNÜR: flex md:hidden) */}
-                  <div
-                    className="relative w-full flex md:hidden h-[620px] max-w-[380px] flex-col bg-[repeating-linear-gradient(0deg,#055c44,#055c44_45px,#044936_45px,#044936_90px)]
-                      bg-gradient-to-r from-emerald-800 via-emerald-700 to-emerald-800 border-4 border-white rounded-3xl p-2 justify-between items-center shadow-2xl overflow-hidden"
-                  >
-                    
-                    {/* MOBİL SKOR TABELASI */}
-                    <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30 flex items-center justify-center bg-slate-950/85 text-white border border-slate-700/80 rounded-2xl px-3 py-1 shadow-2xl backdrop-blur-md whitespace-nowrap">
-                      <div className="flex items-center gap-2 text-[10px] font-extrabold tracking-wide">
-                        <span className="text-slate-100">Beyaz Takım</span>
-                        <span className="text-white font-black text-[10px] px-1">
-                          {isCustomTacticsMode || !matchScore.hasGoals
-                            ? 'VS'
-                            : `${matchScore.teamA} - ${matchScore.teamB}`}
-                        </span>
-                        <span className="text-slate-100">Siyah Takım</span>
-                      </div>
-                    </div>
-
-                    {/* MOBİL KALELER (ÜST & ALT) */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 h-8 w-28 border-4 border-white bg-white/25 border-t-0 rounded-b-xl z-0"></div>
-                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-8 w-28 border-4 border-white bg-white/25 border-b-0 rounded-t-xl z-0"></div>
-
-                    {/* MOBİL ORTA ÇİZGİ VE YUVARLAK */}
-                    <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1 w-full bg-white/90 z-0"></div>
-                    <div className="absolute top-1/2 left-1/2 w-24 h-24 border-4 border-white/90 rounded-full -translate-x-1/2 -translate-y-1/2 z-0"></div>
-
-                    {/* MOBİL BEYAZ TAKIM (ÜST YARI) */}
-                    <div className="relative z-10 w-full h-1/2 flex flex-col justify-around items-center px-1 pt-8">
-                      {activeFormationConfig.lines.map((lineConfig) => (
-                        <div key={`MOB_A_LINE_${lineConfig.role}`} className="flex flex-row justify-around w-full h-auto py-1 items-center gap-1">
-                          {Array.from({ length: lineConfig.count }).map((_, idx) => {
-                            const posKey = `${lineConfig.role}_${idx + 1}`;
-                            const assignedPlayer = currentMatchSquadDetails.find(
-                              (s) => s.team === 'A' && (s.position === posKey || s.position === lineConfig.role)
-                            );
-
-                            return (
-                              <div key={`MOB_A_${posKey}`} className="flex flex-col items-center">
-                                <div
-                                  onClick={() => {
-                                    if (!isDragAllowed) return;
-                                    if (assignedPlayer) {
-                                      setSelectedPlayerForMobile({
-                                        playerId: assignedPlayer.player_id,
-                                        team: 'A',
-                                        position: posKey,
-                                        shirtNumber: assignedPlayer.shirt_number || 1
-                                      });
-                                    } else {
-                                      setSelectedSlotForMobile({ team: 'A', position: posKey });
-                                    }
-                                  }}
-                                  className={`w-20 min-h-[54px] rounded-xl flex flex-col items-center justify-center p-1 transition cursor-pointer ${
-                                    assignedPlayer
-                                      ? 'border-0 bg-transparent'
-                                      : 'border-2 border-dashed border-white/60 bg-black/40 shadow'
-                                  }`}
-                                >
-                                  {!assignedPlayer && (
-                                    <span className="text-[10px] font-black text-white tracking-wider flex items-center gap-0.5">
-                                      <UserPlus className="w-3 h-3 text-emerald-400" />
-                                      {lineConfig.role}
-                                    </span>
-                                  )}
-
-                                  {assignedPlayer && (() => {
-                                    const pObj = allProfiles.find((p) => p.id === assignedPlayer.player_id);
-                                    const fullName = pObj?.full_name || pObj?.username || 'İsimsiz';
-                                    const nameParts = fullName.split(' ');
-                                    const firstName = nameParts[0];
-                                    const lastName = nameParts.slice(1).join(' ');
-
-                                    return (
-                                      <div className="flex flex-col items-center">
-                                        <JerseyIcon
-                                          number={assignedPlayer.shirt_number || 1}
-                                          jerseyColor="#ffffff"
-                                          numberColor="#0f172a"
-                                        />
-                                        <div className="bg-black/50 text-white font-extrabold text-[8px] px-1 py-0.5 rounded-md mt-0.5 shadow-md border border-black/30 backdrop-blur-[2px] text-center leading-tight w-max max-w-[75px]" title={fullName}>
-                                          <div className="truncate">{firstName}</div>
-                                          {lastName && <div className="truncate">{lastName}</div>}
-                                        </div>
-                                      </div>
-                                    );
-                                  })()}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* MOBİL SİYAH TAKIM (ALT YARI) */}
-                    <div className="relative z-10 w-full h-1/2 flex flex-col justify-around items-center px-1 pb-4">
-                      {[...activeFormationConfig.lines].reverse().map((lineConfig) => (
-                        <div key={`MOB_B_LINE_${lineConfig.role}`} className="flex flex-row justify-around w-full h-auto py-1 items-center gap-1">
-                          {Array.from({ length: lineConfig.count }).map((_, idx) => {
-                            const posKey = `${lineConfig.role}_${idx + 1}`;
-                            const assignedPlayer = currentMatchSquadDetails.find(
-                              (s) => s.team === 'B' && (s.position === posKey || s.position === lineConfig.role)
-                            );
-
-                            return (
-                              <div key={`MOB_B_${posKey}`} className="flex flex-col items-center">
-                                <div
-                                  onClick={() => {
-                                    if (!isDragAllowed) return;
-                                    if (assignedPlayer) {
-                                      setSelectedPlayerForMobile({
-                                        playerId: assignedPlayer.player_id,
-                                        team: 'B',
-                                        position: posKey,
-                                        shirtNumber: assignedPlayer.shirt_number || 2
-                                      });
-                                    } else {
-                                      setSelectedSlotForMobile({ team: 'B', position: posKey });
-                                    }
-                                  }}
-                                  className={`w-20 min-h-[54px] rounded-xl flex flex-col items-center justify-center p-1 transition cursor-pointer ${
-                                    assignedPlayer
-                                      ? 'border-0 bg-transparent'
-                                      : 'border-2 border-dashed border-white/60 bg-black/40 shadow'
-                                  }`}
-                                >
-                                  {!assignedPlayer && (
-                                    <span className="text-[10px] font-black text-white tracking-wider flex items-center gap-0.5">
-                                      <UserPlus className="w-3 h-3 text-emerald-400" />
-                                      {lineConfig.role}
-                                    </span>
-                                  )}
-
-                                  {assignedPlayer && (() => {
-                                    const pObj = allProfiles.find((p) => p.id === assignedPlayer.player_id);
-                                    const fullName = pObj?.full_name || pObj?.username || 'İsimsiz';
-                                    const nameParts = fullName.split(' ');
-                                    const firstName = nameParts[0];
-                                    const lastName = nameParts.slice(1).join(' ');
-
-                                    return (
-                                      <div className="flex flex-col items-center">
-                                        <JerseyIcon
-                                          number={assignedPlayer.shirt_number || 2}
-                                          jerseyColor="#0f172a"
-                                          numberColor="#ffffff"
-                                        />
-                                        <div className="bg-black/50 text-white font-extrabold text-[8px] px-1 py-0.5 rounded-md mt-0.5 shadow-md border border-black/30 backdrop-blur-[2px] text-center leading-tight w-max max-w-[75px]" title={fullName}>
-                                          <div className="truncate">{firstName}</div>
-                                          {lastName && <div className="truncate">{lastName}</div>}
-                                        </div>
-                                      </div>
-                                    );
-                                  })()}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ))}
-                    </div>
-
-                  </div>
-
                 </div>
 
               </div>
@@ -1761,7 +1643,7 @@ export default function HomePage() {
         </DragDropContext>
       )}
 
-      {/* MOBİL İÇİN BOŞ POZİSYONA TIKLANDIĞINDA AÇILAN OYUNCU SEÇİM PANELERİ (ACTION SHEET) */}
+      {/* MOBİL İÇİN BOŞ POZİSYONA TIKLANDIĞINDA AÇILAN OYUNCU SEÇİM PANELERİ */}
       {selectedSlotForMobile && (
         <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
           <div className="bg-slate-900 border border-slate-700 w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[80vh] overflow-y-auto">
