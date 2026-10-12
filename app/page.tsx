@@ -247,6 +247,15 @@ const FORMATIONS: Record<string, { size: number; name: string; lines: { role: st
   },
 };
 
+const getDefaultShirtNumber = (role: string, index: number) => {
+  const cleanRole = role.toUpperCase();
+  if (cleanRole.includes('KL')) return 1;
+  if (cleanRole.includes('DF')) return 2 + index; // 2, 3, 4, 5
+  if (cleanRole.includes('OS')) return 6 + index; // 6, 7, 8
+  if (cleanRole.includes('FV')) return 9 + index; // 9, 10, 11
+  return 10 + index;
+};
+
 const formatDateTR = (dateStr: string) => {
   if (!dateStr) return '';
   const parts = dateStr.split('-');
@@ -449,16 +458,9 @@ export default function HomePage() {
   const loadMatchSquadAndAwards = async (matchId: string) => {
     if (!matchId) return;
 
-    const savedShirtNumbersKey = `shirt_numbers_${matchId}`;
-    let savedNumbersMap: Record<string, number> = {};
-    try {
-      const localData = localStorage.getItem(savedShirtNumbersKey);
-      if (localData) savedNumbersMap = JSON.parse(localData);
-    } catch (e) {}
-
     const { data: squad, error } = await supabase
       .from('match_players')
-      .select('player_id, position, team')
+      .select('player_id, position, team, shirt_number')
       .eq('match_id', matchId);
 
     if (error) {
@@ -466,22 +468,30 @@ export default function HomePage() {
       return;
     }
 
+    const roleCounters: Record<string, number> = {};
+
     if (squad && squad.length > 0) {
       const existingPlayerIds = squad.map(s => s.player_id);
-      const squadDetails: MatchPlayerDetail[] = squad.map((s, idx) => ({
-        player_id: s.player_id,
-        position: s.position || 'NONE',
-        team: s.team || 'A',
-        shirt_number: savedNumbersMap[s.player_id] ?? (idx + 1)
-      }));
+      const squadDetails: MatchPlayerDetail[] = squad.map((s) => {
+        const rolePrefix = (s.position || 'NONE').split('_')[0];
+        const currentIdx = roleCounters[rolePrefix] || 0;
+        roleCounters[rolePrefix] = currentIdx + 1;
 
-      allProfiles.forEach((p, idx) => {
+        return {
+          player_id: s.player_id,
+          position: s.position || 'NONE',
+          team: s.team || undefined,
+          shirt_number: s.shirt_number ?? getDefaultShirtNumber(rolePrefix, currentIdx)
+        };
+      });
+
+      allProfiles.forEach((p) => {
         if (!existingPlayerIds.includes(p.id)) {
           squadDetails.push({
             player_id: p.id,
             position: 'NONE',
             team: undefined,
-            shirt_number: savedNumbersMap[p.id] ?? (idx + 1)
+            shirt_number: 10
           });
         }
       });
@@ -493,7 +503,7 @@ export default function HomePage() {
         player_id: p.id,
         position: 'NONE',
         team: undefined,
-        shirt_number: savedNumbersMap[p.id] ?? (idx + 1)
+        shirt_number: idx + 1
       }));
       setCurrentMatchSquadDetails(defaultSquad);
       setMatchScore({ teamA: 0, teamB: 0, hasGoals: false });
@@ -626,26 +636,19 @@ export default function HomePage() {
     let squadDetails: MatchPlayerDetail[] = [];
 
     if (filterMatchId !== 'ALL') {
-      const savedShirtNumbersKey = `shirt_numbers_${filterMatchId}`;
-      let savedNumbersMap: Record<string, number> = {};
-      try {
-        const localData = localStorage.getItem(savedShirtNumbersKey);
-        if (localData) savedNumbersMap = JSON.parse(localData);
-      } catch (e) {}
-
       const { data: squadData } = await supabase
         .from('match_players')
-        .select('player_id, position, team')
+        .select('player_id, position, team, shirt_number')
         .eq('match_id', filterMatchId);
 
       const fieldSquad = squadData?.filter(s => s.position && s.position !== 'NONE' && s.team) || [];
 
       if (fieldSquad.length > 0) {
-        squadDetails = fieldSquad.map((s, idx) => ({
+        squadDetails = fieldSquad.map((s) => ({
           player_id: s.player_id,
           position: s.position,
           team: s.team,
-          shirt_number: savedNumbersMap[s.player_id] ?? (idx + 1)
+          shirt_number: s.shirt_number ?? 10
         }));
         const squadPlayerIds = squadDetails.map((s) => s.player_id);
         activeProfiles = activeProfiles.filter((p) => squadPlayerIds.includes(p.id));
@@ -796,11 +799,15 @@ export default function HomePage() {
         updated[targetIndex].team = undefined;
         updated[targetIndex].position = 'NONE';
       } else if (targetKey.startsWith('TEAM_A_')) {
+        const role = targetKey.replace('TEAM_A_', '').split('_')[0];
         updated[targetIndex].team = 'A';
         updated[targetIndex].position = targetKey.replace('TEAM_A_', '');
+        updated[targetIndex].shirt_number = getDefaultShirtNumber(role, 0);
       } else if (targetKey.startsWith('TEAM_B_')) {
+        const role = targetKey.replace('TEAM_B_', '').split('_')[0];
         updated[targetIndex].team = 'B';
         updated[targetIndex].position = targetKey.replace('TEAM_B_', '');
+        updated[targetIndex].shirt_number = getDefaultShirtNumber(role, 0);
       }
       setCurrentMatchSquadDetails(updated);
     }
@@ -811,8 +818,10 @@ export default function HomePage() {
     const targetIndex = updated.findIndex((s) => s.player_id === playerId);
 
     if (targetIndex !== -1) {
+      const role = position.split('_')[0];
       updated[targetIndex].team = team;
       updated[targetIndex].position = position;
+      updated[targetIndex].shirt_number = getDefaultShirtNumber(role, 0);
       setCurrentMatchSquadDetails(updated);
     }
     setSelectedSlotForMobile(null);
@@ -853,17 +862,6 @@ export default function HomePage() {
       return;
     }
 
-    const savedShirtNumbersKey = `shirt_numbers_${adminMatchId}`;
-    const shirtNumbersMap: Record<string, number> = {};
-    currentMatchSquadDetails.forEach(s => {
-      if (s.shirt_number !== undefined) {
-        shirtNumbersMap[s.player_id] = s.shirt_number;
-      }
-    });
-    try {
-      localStorage.setItem(savedShirtNumbersKey, JSON.stringify(shirtNumbersMap));
-    } catch (e) {}
-
     const fieldPlayers = currentMatchSquadDetails.filter(s => s.position && s.position !== 'NONE' && s.team);
 
     const { error: delErr } = await supabase.from('match_players').delete().eq('match_id', adminMatchId);
@@ -877,7 +875,8 @@ export default function HomePage() {
         match_id: adminMatchId,
         player_id: s.player_id,
         position: s.position,
-        team: s.team
+        team: s.team,
+        shirt_number: s.shirt_number ?? 10
       }));
       
       const { error: insErr } = await supabase.from('match_players').insert(squadInserts);
@@ -905,10 +904,6 @@ export default function HomePage() {
 
     setLoading(true);
 
-    try {
-      localStorage.removeItem(`shirt_numbers_${adminMatchId}`);
-    } catch (e) {}
-
     const { error } = await supabase.from('matches').delete().eq('id', adminMatchId);
 
     if (error) {
@@ -927,28 +922,29 @@ export default function HomePage() {
 
     setLoading(true);
 
-    await supabase
-      .from('player_stats')
-      .delete()
-      .eq('player_id', selectedPlayerId)
-      .eq('match_id', adminMatchId);
+    for (const def of statDefs) {
+      const val = inputStats[def.key] ?? 0;
 
-    const statsToInsert = statDefs
-      .filter((def) => (inputStats[def.key] ?? 0) > 0)
-      .map((def) => ({
-        player_id: selectedPlayerId,
-        stat_id: def.id,
-        match_id: adminMatchId,
-        value: inputStats[def.key] ?? 0,
-      }));
+      const { data: existing } = await supabase
+        .from('player_stats')
+        .select('id')
+        .eq('player_id', selectedPlayerId)
+        .eq('stat_id', def.id)
+        .eq('match_id', adminMatchId)
+        .maybeSingle();
 
-    if (statsToInsert.length > 0) {
-      const { error } = await supabase.from('player_stats').insert(statsToInsert);
-      if (error) {
-        console.error('İstatistik kaydetme hatası:', error.message);
-        alert('İstatistikler kaydedilirken bir hata oluştu: ' + error.message);
-        setLoading(false);
-        return;
+      if (existing) {
+        await supabase
+          .from('player_stats')
+          .update({ value: val })
+          .eq('id', existing.id);
+      } else if (val > 0) {
+        await supabase.from('player_stats').insert({
+          player_id: selectedPlayerId,
+          stat_id: def.id,
+          match_id: adminMatchId,
+          value: val,
+        });
       }
     }
 
@@ -1006,7 +1002,21 @@ export default function HomePage() {
     ? matches 
     : matches.filter(m => m.season_id === selectedSeasonId);
 
-  const sortedPlayers = [...playersData].sort((a, b) => b.totalPoints - a.totalPoints);
+  const sortPlayersAlphabetically = (a: PlayerStatsGrouped, b: PlayerStatsGrouped, statKey?: string) => {
+    const valA = statKey ? (a.stats[statKey] || 0) : a.totalPoints;
+    const valB = statKey ? (b.stats[statKey] || 0) : b.totalPoints;
+
+    if (valB !== valA) {
+      return valB - valA; // Puana göre büyükten küçüğe
+    }
+
+    // Puanlar eşitse isme göre alfabetik (A-Z)
+    const nameA = (a.profile.full_name || a.profile.username || '').toLowerCase();
+    const nameB = (b.profile.full_name || b.profile.username || '').toLowerCase();
+    return nameA.localeCompare(nameB, 'tr');
+  };
+
+  const sortedPlayers = [...playersData].sort((a, b) => sortPlayersAlphabetically(a, b));
 
   const getWeeklyAutomatedAwards = () => {
     if (selectedFilterMatchId === 'ALL' || playersData.length === 0) {
@@ -1386,27 +1396,19 @@ export default function HomePage() {
                       </div>
                     </div>
 
-                    {/* MASAÜSTÜ SAHA ÇİZGİLERİ (SADECE MASAÜSTÜNDE GÖRÜNÜR) */}
+                    {/* MASAÜSTÜ SAHA ÇİZGİLERİ */}
                     <div className="hidden md:block">
-                      {/* Sol Kale */}
                       <div className="absolute top-1/2 left-0 -translate-y-1/2 w-10 h-36 border-4 border-l-0 border-white rounded-r-xl bg-white/25 z-0"></div>
-                      {/* Sağ Kale */}
                       <div className="absolute top-1/2 right-0 -translate-y-1/2 w-10 h-36 border-4 border-r-0 border-white rounded-l-xl bg-white/25 z-0"></div>
-                      {/* Dikey Orta Çizgi */}
                       <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[4px] bg-white/90 z-0"></div>
-                      {/* Orta Yuvarlak */}
                       <div className="absolute top-1/2 left-1/2 w-32 h-32 border-4 border-white/90 rounded-full -translate-x-1/2 -translate-y-1/2 z-0"></div>
                     </div>
 
-                    {/* MOBİL SAHA ÇİZGİLERİ (SADECE MOBİLDE GÖRÜNÜR) */}
+                    {/* MOBİL SAHA ÇİZGİLERİ */}
                     <div className="block md:hidden">
-                      {/* Üst Kale */}
                       <div className="absolute top-0 left-1/2 -translate-x-1/2 h-8 w-28 border-4 border-t-0 border-white rounded-b-xl bg-white/25 z-0"></div>
-                      {/* Alt Kale */}
                       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-8 w-28 border-4 border-b-0 border-white rounded-t-xl bg-white/25 z-0"></div>
-                      {/* Yatay Orta Çizgi */}
                       <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[4px] w-full bg-white/90 z-0"></div>
-                      {/* Orta Yuvarlak */}
                       <div className="absolute top-1/2 left-1/2 w-24 h-24 border-4 border-white/90 rounded-full -translate-x-1/2 -translate-y-1/2 z-0"></div>
                     </div>
 
@@ -1648,7 +1650,7 @@ export default function HomePage() {
         </DragDropContext>
       )}
 
-      {/* MOBİL İÇİN BOŞ POZİSYONA TIKLANDIĞINDA AÇILAN OYUNCU SEÇİM PANELERİ */}
+      {/* MOBİL İÇİN BOŞ POZİSYONA TIKLANDIĞINDA AÇILAN OYUNCU SEÇİMİ */}
       {selectedSlotForMobile && (
         <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
           <div className="bg-slate-900 border border-slate-700 w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[80vh] overflow-y-auto">
@@ -2130,7 +2132,7 @@ export default function HomePage() {
             <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
               {[...playersData]
                 .filter(p => (p.stats['goals'] || 0) > 0)
-                .sort((a, b) => (b.stats['goals'] || 0) - (a.stats['goals'] || 0))
+                .sort((a, b) => sortPlayersAlphabetically(a, b, 'goals'))
                 .map((p, index) => (
                   <div key={p.profile.id} className="flex justify-between items-center p-2.5 bg-slate-800/40 rounded-xl">
                     <div className="flex items-center gap-3">
@@ -2160,7 +2162,7 @@ export default function HomePage() {
             <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
               {[...playersData]
                 .filter(p => (p.stats['assists'] || 0) > 0)
-                .sort((a, b) => (b.stats['assists'] || 0) - (a.stats['assists'] || 0))
+                .sort((a, b) => sortPlayersAlphabetically(a, b, 'assists'))
                 .map((p, index) => (
                   <div key={p.profile.id} className="flex justify-between items-center p-2.5 bg-slate-800/40 rounded-xl">
                     <div className="flex items-center gap-3">
