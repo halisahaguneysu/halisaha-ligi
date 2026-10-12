@@ -927,31 +927,35 @@ export default function HomePage() {
 
     setLoading(true);
 
-    const upsertData = statDefs.map((def) => {
-      const val = inputStats[def.key] ?? 0;
-      return {
+    await supabase
+      .from('player_stats')
+      .delete()
+      .eq('player_id', selectedPlayerId)
+      .eq('match_id', adminMatchId);
+
+    const statsToInsert = statDefs
+      .filter((def) => (inputStats[def.key] ?? 0) > 0)
+      .map((def) => ({
         player_id: selectedPlayerId,
         stat_id: def.id,
         match_id: adminMatchId,
-        value: val,
-        updated_at: new Date().toISOString(),
-      };
-    });
+        value: inputStats[def.key] ?? 0,
+      }));
 
-    const { error } = await supabase
-      .from('player_stats')
-      .upsert(upsertData, { onConflict: 'player_id,match_id,stat_id' });
-
-    if (error) {
-      console.error('İstatistik kaydetme hatası:', error.message);
-      alert('İstatistikler kaydedilirken bir hata oluştu: ' + error.message);
-    } else {
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
-      await loadInitialData();
-      await loadMatchSquadAndAwards(adminMatchId);
+    if (statsToInsert.length > 0) {
+      const { error } = await supabase.from('player_stats').insert(statsToInsert);
+      if (error) {
+        console.error('İstatistik kaydetme hatası:', error.message);
+        alert('İstatistikler kaydedilirken bir hata oluştu: ' + error.message);
+        setLoading(false);
+        return;
+      }
     }
 
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 3000);
+    await loadInitialData();
+    await loadMatchSquadAndAwards(adminMatchId);
     setLoading(false);
   };
 
