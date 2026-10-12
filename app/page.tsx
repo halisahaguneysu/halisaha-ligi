@@ -1361,10 +1361,10 @@ export default function HomePage() {
                   </Droppable>
                 </div>
 
-                {/* SAĞ PANEL: HALISAHA (PITCHREF - İNDİRME VE PAYLAŞMA İÇİN ORTAK KANVAS) */}
+                {/* SAĞ PANEL: HALISAHA (ORTAK KANVAS) */}
                 <div className="bg-slate-900 border border-slate-800 p-2 sm:p-3 rounded-3xl md:col-span-3 flex justify-center items-center shadow-xl">
                   
-                  {/* PITCH REF (ORTAK KANVAS - MOBİL VE MASAÜSTÜNDE SORUNSUZ GÖRÜNTÜ YAKALAMA) */}
+                  {/* PITCH REF */}
                   <div
                     ref={pitchRef}
                     className="relative w-full 
@@ -1373,11 +1373,11 @@ export default function HomePage() {
                       bg-gradient-to-r from-emerald-800 via-emerald-700 to-emerald-800 border-4 border-white rounded-3xl p-2 md:p-3 justify-between items-center shadow-2xl overflow-hidden"
                   >
                     
-                    {/* SKOR / TAKIM TABELASI (SADECE MASAÜSTÜNDE GÖRÜNÜR: hidden md:flex) */}
-                    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 hidden md:flex items-center justify-center bg-slate-950/85 text-white border border-slate-700/80 rounded-2xl px-5 py-2 shadow-2xl backdrop-blur-md whitespace-nowrap">
-                      <div className="flex items-center gap-3 text-sm font-extrabold tracking-wide">
+                    {/* SKOR / TAKIM TABELASI: Resmî maç modunda mobilde ve masaüstünde görünür. Taktik tahtasında mobilde gizlenir. */}
+                    <div className={`absolute top-3 left-1/2 -translate-x-1/2 z-30 ${isCustomTacticsMode ? 'hidden md:flex' : 'flex'} items-center justify-center bg-slate-950/85 text-white border border-slate-700/80 rounded-2xl px-3 py-1 md:px-5 md:py-2 shadow-2xl backdrop-blur-md whitespace-nowrap`}>
+                      <div className="flex items-center gap-2 md:gap-3 text-xs md:text-sm font-extrabold tracking-wide">
                         <span className="text-slate-100">Beyaz Takım</span>
-                        <span className="text-white font-black text-sm px-1">
+                        <span className="text-white font-black text-xs md:text-sm px-1">
                           {isCustomTacticsMode || !matchScore.hasGoals
                             ? 'VS'
                             : `${matchScore.teamA} - ${matchScore.teamB}`}
@@ -1386,7 +1386,7 @@ export default function HomePage() {
                       </div>
                     </div>
 
-                    {/* KALELER (MASAÜSTÜ: SOL/SAĞ, MOBİL: ÜST/ALT) */}
+                    {/* KALELER */}
                     <div className="absolute 
                       md:top-1/2 md:left-0 md:-translate-y-1/2 md:w-10 md:h-36 md:border-l-0 md:rounded-r-xl md:border-t-4 md:border-b-4
                       top-0 left-1/2 -translate-x-1/2 h-8 w-28 border-t-0 rounded-b-xl
@@ -1397,15 +1397,15 @@ export default function HomePage() {
                       bottom-0 left-1/2 -translate-x-1/2 h-8 w-28 border-b-0 rounded-t-xl
                       border-4 border-white bg-white/25 z-0"></div>
 
-                    {/* ORTA ÇİZGİ VE YUVARLAK (MASAÜSTÜ: DİKEY, MOBİL: YATAY) */}
+                    {/* ORTA ÇİZGİ VE YUVARLAK */}
                     <div className="absolute 
-                      md:top-0 md:bottom-0 md:left-1/2 md:-translate-x-1/2 md:w-1 md:h-full md:w-1 md:w-[4px]
+                      md:top-0 md:bottom-0 md:left-1/2 md:-translate-x-1/2 md:w-1 md:h-full md:w-[4px]
                       left-0 right-0 top-1/2 -translate-y-1/2 h-[4px] w-full
                       bg-white/90 z-0"></div>
                     
                     <div className="absolute top-1/2 left-1/2 w-24 h-24 md:w-32 md:h-32 border-4 border-white/90 rounded-full -translate-x-1/2 -translate-y-1/2 z-0"></div>
 
-                    {/* BEYAZ TAKIM (MASAÜSTÜ: SOL YARI, MOBİL: ÜST YARI) */}
+                    {/* BEYAZ TAKIM */}
                     <div className="relative z-10 w-full md:w-1/2 h-1/2 md:h-full flex flex-col md:flex-row justify-around items-center px-1 md:px-3 pt-6 md:pt-6">
                       {activeFormationConfig.lines.map((lineConfig) => (
                         <div key={`TEAM_A_LINE_${lineConfig.role}`} className="flex flex-row md:flex-col justify-around w-full md:w-auto h-auto md:h-full py-1 md:py-2 items-center gap-1">
@@ -1516,7 +1516,7 @@ export default function HomePage() {
                       ))}
                     </div>
 
-                    {/* SİYAH TAKIM (MASAÜSTÜ: SAĞ YARI, MOBİL: ALT YARI) */}
+                    {/* SİYAH TAKIM */}
                     <div className="relative z-10 w-full md:w-1/2 h-1/2 md:h-full flex flex-col md:flex-row justify-around items-center px-1 md:px-3 pb-4 md:pb-0 md:pt-6">
                       {[...activeFormationConfig.lines].reverse().map((lineConfig) => (
                         <div key={`TEAM_B_LINE_${lineConfig.role}`} className="flex flex-row md:flex-col justify-around w-full md:w-auto h-auto md:h-full py-1 md:py-2 items-center gap-1">
