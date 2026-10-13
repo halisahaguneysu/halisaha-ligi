@@ -938,7 +938,7 @@ export default function HomePage() {
           .from('player_stats')
           .update({ value: val })
           .eq('id', existing.id);
-      } else if (val > 0) {
+      } else {
         await supabase.from('player_stats').insert({
           player_id: selectedPlayerId,
           stat_id: def.id,
