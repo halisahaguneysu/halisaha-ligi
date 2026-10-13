@@ -508,7 +508,7 @@ export default function HomePage() {
 
     let statsQuery = supabase
       .from('player_stats')
-      .select('player_id, value, match_id, stat_id, stat_definitions(key)');
+      .select('player_id, value, match_id, stat_definitions(key)');
     
     if (filterMatchId !== 'ALL') {
       statsQuery = statsQuery.eq('match_id', filterMatchId);
@@ -532,7 +532,7 @@ export default function HomePage() {
         const matchedStats = statsData?.filter((s: any) => {
           if (s.player_id !== prof.id) return false;
           const statKey = s.stat_definitions?.key;
-          return statKey === d.key || s.stat_id === d.id;
+          return statKey === d.key;
         }) || [];
 
         const totalVal = matchedStats.reduce((acc, curr: any) => acc + Number(curr.value || 0), 0);
