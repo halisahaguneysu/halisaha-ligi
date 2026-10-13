@@ -463,6 +463,7 @@ export default function HomePage() {
     return total;
   };
 
+  -- ⚡ GÜNCELLENEN fetchStatsAndPlayers: player_totals özet tablosundan yüksek performansla çeker
   const fetchStatsAndPlayers = async (
     seasonId: string, 
     filterMatchId: string, 
@@ -472,13 +473,6 @@ export default function HomePage() {
   ) => {
     setLoading(true);
     let activeProfiles = profilesList.filter((p) => p.role !== 'admin');
-
-    let filteredMatches = currentMatches;
-    if (seasonId !== 'ALL') {
-      filteredMatches = filteredMatches.filter(m => m.season_id === seasonId);
-    }
-    
-    const validMatchIds = filteredMatches.map(m => m.id);
 
     let squadDetails: MatchPlayerDetail[] = [];
 
@@ -506,46 +500,64 @@ export default function HomePage() {
       }
     }
 
-    let statsQuery = supabase
-      .from('player_stats')
-      .select('player_id, value, match_id, stat_definitions(key)');
-    
-    if (filterMatchId !== 'ALL') {
-      statsQuery = statsQuery.eq('match_id', filterMatchId);
-    } else if (seasonId !== 'ALL' && validMatchIds.length > 0) {
-      statsQuery = statsQuery.in('match_id', validMatchIds);
-    } else if (seasonId !== 'ALL' && validMatchIds.length === 0) {
-      setPlayersData([]);
-      setLoading(false);
-      return;
-    }
+    let totalsMap: Record<string, { stats: Record<string, number>; totalPoints: number }> = {};
 
-    const { data: statsData, error: statsErr } = await statsQuery;
-    if (statsErr) {
-      console.error("Stats fetch error:", statsErr);
+    if (filterMatchId === 'ALL') {
+      let totalsQuery = supabase.from('player_totals').select('player_id, season_id, stats, total_points');
+      
+      if (seasonId !== 'ALL') {
+        totalsQuery = totalsQuery.eq('season_id', seasonId);
+      }
+
+      const { data: totalsData } = await totalsQuery;
+
+      if (totalsData) {
+        totalsData.forEach((row: any) => {
+          if (!totalsMap[row.player_id]) {
+            totalsMap[row.player_id] = { stats: {}, totalPoints: 0 };
+          }
+          totalsMap[row.player_id].totalPoints += Number(row.total_points || 0);
+          
+          if (row.stats) {
+            Object.entries(row.stats).forEach(([k, val]) => {
+              totalsMap[row.player_id].stats[k] = (totalsMap[row.player_id].stats[k] || 0) + Number(val || 0);
+            });
+          }
+        });
+      }
+    } else {
+      const { data: matchStats } = await supabase
+        .from('player_stats')
+        .select('player_id, value, stat_definitions(key)')
+        .eq('match_id', filterMatchId);
+
+      if (matchStats) {
+        matchStats.forEach((s: any) => {
+          const pId = s.player_id;
+          const sKey = s.stat_definitions?.key;
+          if (!pId || !sKey) return;
+
+          if (!totalsMap[pId]) {
+            totalsMap[pId] = { stats: {}, totalPoints: 0 };
+          }
+          const val = Number(s.value || 0);
+          totalsMap[pId].stats[sKey] = (totalsMap[pId].stats[sKey] || 0) + val;
+        });
+
+        Object.keys(totalsMap).forEach((pId) => {
+          totalsMap[pId].totalPoints = calculateTotalPoints(totalsMap[pId].stats, currentDefs);
+        });
+      }
     }
 
     const grouped: PlayerStatsGrouped[] = activeProfiles.map((prof) => {
-      const pStats: Record<string, number> = {};
-
-      currentDefs.forEach((d) => {
-        const matchedStats = statsData?.filter((s: any) => {
-          if (s.player_id !== prof.id) return false;
-          const statKey = s.stat_definitions?.key;
-          return statKey === d.key;
-        }) || [];
-
-        const totalVal = matchedStats.reduce((acc, curr: any) => acc + Number(curr.value || 0), 0);
-        pStats[d.key] = totalVal;
-      });
-
-      const totalPoints = calculateTotalPoints(pStats, currentDefs);
+      const userRecord = totalsMap[prof.id] || { stats: {}, totalPoints: 0 };
       const matchDetail = squadDetails.find(s => s.player_id === prof.id);
 
       return { 
         profile: prof, 
-        stats: pStats, 
-        totalPoints,
+        stats: userRecord.stats, 
+        totalPoints: userRecord.totalPoints,
         matchPosition: matchDetail?.position !== 'NONE' ? matchDetail?.position : undefined,
         matchTeam: matchDetail?.team,
         shirtNumber: matchDetail?.shirt_number
