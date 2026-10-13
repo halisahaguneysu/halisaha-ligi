@@ -57,13 +57,13 @@ const DEFAULT_STAT_DEFS: StatDef[] = [
   { id: '1', key: 'matches', title: 'Maç', point_value: 10 },
   { id: '2', key: 'goals', title: 'Gol', point_value: 8 },
   { id: '3', key: 'assists', title: 'Asist', point_value: 6 },
-  { id: '4', key: 'shots', title: 'Şut', point_value: 2 },
+  { id: '4', key: 'shots_on_target', title: 'Şut', point_value: 2 },
   { id: '5', key: 'shots_off_target', title: 'İsabetsiz Şut', point_value: -1 },
   { id: '6', key: 'passes', title: 'Pas', point_value: 3 },
   { id: '7', key: 'dribbles', title: 'Çalım', point_value: 3 },
   { id: '8', key: 'tackles', title: 'Müdahale', point_value: 3 },
   { id: '9', key: 'saves', title: 'Kurtarış', point_value: 3 },
-  { id: '10', key: 'conceded_goals', title: 'Yenen Gol', point_value: -1 },
+  { id: '10', key: 'goals_conceded', title: 'Yenen Gol', point_value: -1 },
   { id: '11', key: 'wins', title: 'Galibiyet', point_value: 10 },
   { id: '12', key: 'losses', title: 'Mağlubiyet', point_value: 0 },
   { id: '13', key: 'yellow_cards', title: 'Sarı Kart', point_value: 0 },
@@ -361,7 +361,7 @@ export default function HomePage() {
 
     const { data: goalsData } = await supabase
       .from('player_stats')
-      .select('player_id, value, stat_id')
+      .select('player_id, value, stat_id, stat_definitions(key)')
       .eq('match_id', matchId);
 
     if (!goalsData || goalsData.length === 0) {
@@ -373,10 +373,9 @@ export default function HomePage() {
     let scoreB = 0;
     let hasAnyGoal = false;
 
-    goalsData.forEach(g => {
-      const defMatch = statDefs.find(d => d.id === g.stat_id || d.key === 'goals');
-      // Sadece gol istatistiğini kontrol et
-      if (g.stat_id === goalDef.id || defMatch?.key === 'goals') {
+    goalsData.forEach((g: any) => {
+      const statKey = g.stat_definitions?.key;
+      if (g.stat_id === goalDef.id || statKey === 'goals') {
         const val = Number(g.value || 0);
         if (val > 0) {
           hasAnyGoal = true;
@@ -507,10 +506,9 @@ export default function HomePage() {
       }
     }
 
-    // player_stats ile stat_definitions tablolarını JOIN ederek key bazlı çekiyoruz (UUID uyuşmazlıklarını önlemek için)
     let statsQuery = supabase
       .from('player_stats')
-      .select('player_id, value, match_id, stat_definitions(key)');
+      .select('player_id, value, match_id, stat_id, stat_definitions(key)');
     
     if (filterMatchId !== 'ALL') {
       statsQuery = statsQuery.eq('match_id', filterMatchId);
@@ -534,7 +532,7 @@ export default function HomePage() {
         const matchedStats = statsData?.filter((s: any) => {
           if (s.player_id !== prof.id) return false;
           const statKey = s.stat_definitions?.key;
-          return statKey === d.key;
+          return statKey === d.key || s.stat_id === d.id;
         }) || [];
 
         const totalVal = matchedStats.reduce((acc, curr: any) => acc + Number(curr.value || 0), 0);
@@ -903,7 +901,7 @@ export default function HomePage() {
       keyLower.includes('mvp') || keyLower.includes('best') ||
       titleLower.includes('mvp') || titleLower.includes('maçın adamı') || titleLower.includes('en iyi');
 
-    const isStandardStat = keyLower === 'conceded_goals' || keyLower === 'saves' || titleLower === 'yenen gol' || titleLower === 'kurtarış';
+    const isStandardStat = keyLower === 'conceded_goals' || keyLower === 'goals_conceded' || keyLower === 'saves' || titleLower === 'yenen gol' || titleLower === 'kurtarış';
 
     if (isStandardStat) return true;
     return !containsAwardKeyword;
