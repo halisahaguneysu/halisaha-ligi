@@ -763,7 +763,6 @@ export default function HomePage() {
         .select('player_id, value, stat_id')
         .eq('match_id', adminMatchId);
 
-      // Puanları hesapla
       const playerScores: Record<string, number> = {};
       fieldPlayers.forEach(fp => { playerScores[fp.player_id] = 0; });
 
@@ -783,7 +782,7 @@ export default function HomePage() {
 
       fieldPlayers.forEach(fp => {
         const pts = playerScores[fp.player_id] || 0;
-        const pos = fp.position.toUpperCase();
+        const pos = (fp.position || '').toUpperCase();
 
         if (pts > maxMvpPts) { maxMvpPts = pts; topMvp = fp.player_id; }
         if (pos.startsWith('KL') && pts > maxGkPts) { maxGkPts = pts; topGk = fp.player_id; }
@@ -861,7 +860,6 @@ export default function HomePage() {
       }
     }
 
-    // İstatistikler güncellendiğinde maç ödüllerini de güncelleyelim
     const { data: squadData } = await supabase.from('match_players').select('player_id, position').eq('match_id', adminMatchId);
     if (squadData && squadData.length > 0) {
       const fieldPlayers = squadData.filter(s => s.position && s.position !== 'NONE');
@@ -886,7 +884,7 @@ export default function HomePage() {
 
       fieldPlayers.forEach(fp => {
         const pts = playerScores[fp.player_id] || 0;
-        const pos = fp.position.toUpperCase();
+        const pos = (fp.position || '').toUpperCase();
 
         if (pts > maxMvpPts) { maxMvpPts = pts; topMvp = fp.player_id; }
         if (pos.startsWith('KL') && pts > maxGkPts) { maxGkPts = pts; topGk = fp.player_id; }
@@ -990,7 +988,6 @@ export default function HomePage() {
     };
   };
 
-  // Kalıcı ödül verilerinden sezonluk veya genel en iyileri hesaplayan fonksiyon
   const getPermanentSeasonAwards = () => {
     const relevantMatches = selectedSeasonId === 'ALL'
       ? matches
@@ -1379,9 +1376,9 @@ export default function HomePage() {
                     
                     {/* SKOR / TAKIM TABELASI */}
                     <div className={`absolute top-3 left-1/2 -translate-x-1/2 z-30 ${isCustomTacticsMode ? 'hidden md:flex' : 'flex'} items-center justify-center bg-slate-950/85 text-white border border-slate-700/80 rounded-2xl px-3 py-1 md:px-5 md:py-2 shadow-2xl backdrop-blur-md whitespace-nowrap`}>
-                      <div className="flex items-center gap-2 md:gap-3 text-xs md:text-sm font-extrabold tracking-wide">
+                      <div className="flex items-center gap-2 md:gap-3 text-xs sm:text-sm font-extrabold tracking-wide">
                         <span className="text-slate-100">Beyaz Takım</span>
-                        <span className="text-white font-black text-xs md:text-sm px-1">
+                        <span className="text-white font-black text-xs sm:text-sm px-1">
                           {isCustomTacticsMode || !matchScore.hasGoals
                             ? 'VS'
                             : `${matchScore.teamA} - ${matchScore.teamB}`}
