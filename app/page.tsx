@@ -463,7 +463,6 @@ export default function HomePage() {
     return total;
   };
 
-  -- ⚡ GÜNCELLENEN fetchStatsAndPlayers: player_totals özet tablosundan yüksek performansla çeker
   const fetchStatsAndPlayers = async (
     seasonId: string, 
     filterMatchId: string, 
