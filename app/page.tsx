@@ -71,188 +71,33 @@ const DEFAULT_STAT_DEFS: StatDef[] = [
 ];
 
 const FORMATIONS: Record<string, { size: number; name: string; lines: { role: string; count: number }[] }> = {
-  // 6v6 Dizilişleri
-  '6-2-2-1': {
-    size: 6,
-    name: '2 - 2 - 1 (2 Def, 2 OS, 1 Forv)',
-    lines: [
-      { role: 'KL', count: 1 },
-      { role: 'DF', count: 2 },
-      { role: 'OS', count: 2 },
-      { role: 'FV', count: 1 },
-    ],
-  },
-  '6-2-1-2': {
-    size: 6,
-    name: '2 - 1 - 2 (2 Def, 1 OS, 2 Forv)',
-    lines: [
-      { role: 'KL', count: 1 },
-      { role: 'DF', count: 2 },
-      { role: 'OS', count: 1 },
-      { role: 'FV', count: 2 },
-    ],
-  },
-  '6-1-3-1': {
-    size: 6,
-    name: '1 - 3 - 1 (1 Def, 3 OS, 1 Forv)',
-    lines: [
-      { role: 'KL', count: 1 },
-      { role: 'DF', count: 1 },
-      { role: 'OS', count: 3 },
-      { role: 'FV', count: 1 },
-    ],
-  },
-  '6-3-1-1': {
-    size: 6,
-    name: '3 - 1 - 1 (3 Def, 1 OS, 1 Forv)',
-    lines: [
-      { role: 'KL', count: 1 },
-      { role: 'DF', count: 3 },
-      { role: 'OS', count: 1 },
-      { role: 'FV', count: 1 },
-    ],
-  },
-  '6-1-2-2': {
-    size: 6,
-    name: '1 - 2 - 2 (1 Def, 2 OS, 2 Forv)',
-    lines: [
-      { role: 'KL', count: 1 },
-      { role: 'DF', count: 1 },
-      { role: 'OS', count: 2 },
-      { role: 'FV', count: 2 },
-    ],
-  },
+  '6-2-2-1': { size: 6, name: '2 - 2 - 1 (2 Def, 2 OS, 1 Forv)', lines: [{ role: 'KL', count: 1 }, { role: 'DF', count: 2 }, { role: 'OS', count: 2 }, { role: 'FV', count: 1 }] },
+  '6-2-1-2': { size: 6, name: '2 - 1 - 2 (2 Def, 1 OS, 2 Forv)', lines: [{ role: 'KL', count: 1 }, { role: 'DF', count: 2 }, { role: 'OS', count: 1 }, { role: 'FV', count: 2 }] },
+  '6-1-3-1': { size: 6, name: '1 - 3 - 1 (1 Def, 3 OS, 1 Forv)', lines: [{ role: 'KL', count: 1 }, { role: 'DF', count: 1 }, { role: 'OS', count: 3 }, { role: 'FV', count: 1 }] },
+  '6-3-1-1': { size: 6, name: '3 - 1 - 1 (3 Def, 1 OS, 1 Forv)', lines: [{ role: 'KL', count: 1 }, { role: 'DF', count: 3 }, { role: 'OS', count: 1 }, { role: 'FV', count: 1 }] },
+  '6-1-2-2': { size: 6, name: '1 - 2 - 2 (1 Def, 2 OS, 2 Forv)', lines: [{ role: 'KL', count: 1 }, { role: 'DF', count: 1 }, { role: 'OS', count: 2 }, { role: 'FV', count: 2 }] },
 
-  // 7v7 Dizilişleri
-  '7-3-3': {
-    size: 7,
-    name: '3 - 3 (3 Defans, 3 Forvet)',
-    lines: [
-      { role: 'KL', count: 1 },
-      { role: 'DF', count: 3 },
-      { role: 'FV', count: 3 },
-    ],
-  },
-  '7-2-2-2': {
-    size: 7,
-    name: '2 - 2 - 2 (2 Def, 2 OS, 2 Forv)',
-    lines: [
-      { role: 'KL', count: 1 },
-      { role: 'DF', count: 2 },
-      { role: 'OS', count: 2 },
-      { role: 'FV', count: 2 },
-    ],
-  },
-  '7-3-2-1': {
-    size: 7,
-    name: '3 - 2 - 1 (3 Def, 2 OS, 1 Forv)',
-    lines: [
-      { role: 'KL', count: 1 },
-      { role: 'DF', count: 3 },
-      { role: 'OS', count: 2 },
-      { role: 'FV', count: 1 },
-    ],
-  },
-  '7-2-3-1': {
-    size: 7,
-    name: '2 - 3 - 1 (2 Def, 3 OS, 1 Forv)',
-    lines: [
-      { role: 'KL', count: 1 },
-      { role: 'DF', count: 2 },
-      { role: 'OS', count: 3 },
-      { role: 'FV', count: 1 },
-    ],
-  },
-  '7-1-3-2': {
-    size: 7,
-    name: '1 - 3 - 2 (1 Def, 3 OS, 2 Forv)',
-    lines: [
-      { role: 'KL', count: 1 },
-      { role: 'DF', count: 1 },
-      { role: 'OS', count: 3 },
-      { role: 'FV', count: 2 },
-    ],
-  },
-  '7-3-1-2': {
-    size: 7,
-    name: '3 - 1 - 2 (3 Def, 1 OS, 2 Forv)',
-    lines: [
-      { role: 'KL', count: 1 },
-      { role: 'DF', count: 3 },
-      { role: 'OS', count: 1 },
-      { role: 'FV', count: 2 },
-    ],
-  },
+  '7-3-3': { size: 7, name: '3 - 3 (3 Defans, 3 Forvet)', lines: [{ role: 'KL', count: 1 }, { role: 'DF', count: 3 }, { role: 'FV', count: 3 }] },
+  '7-2-2-2': { size: 7, name: '2 - 2 - 2 (2 Def, 2 OS, 2 Forv)', lines: [{ role: 'KL', count: 1 }, { role: 'DF', count: 2 }, { role: 'OS', count: 2 }, { role: 'FV', count: 2 }] },
+  '7-3-2-1': { size: 7, name: '3 - 2 - 1 (3 Def, 2 OS, 1 Forv)', lines: [{ role: 'KL', count: 1 }, { role: 'DF', count: 3 }, { role: 'OS', count: 2 }, { role: 'FV', count: 1 }] },
+  '7-2-3-1': { size: 7, name: '2 - 3 - 1 (2 Def, 3 OS, 1 Forv)', lines: [{ role: 'KL', count: 1 }, { role: 'DF', count: 2 }, { role: 'OS', count: 3 }, { role: 'FV', count: 1 }] },
+  '7-1-3-2': { size: 7, name: '1 - 3 - 2 (1 Def, 3 OS, 2 Forv)', lines: [{ role: 'KL', count: 1 }, { role: 'DF', count: 1 }, { role: 'OS', count: 3 }, { role: 'FV', count: 2 }] },
+  '7-3-1-2': { size: 7, name: '3 - 1 - 2 (3 Def, 1 OS, 2 Forv)', lines: [{ role: 'KL', count: 1 }, { role: 'DF', count: 3 }, { role: 'OS', count: 1 }, { role: 'FV', count: 2 }] },
 
-  // 8v8 Dizilişleri
-  '8-3-2-2': {
-    size: 8,
-    name: '3 - 2 - 2 (3 Def, 2 OS, 2 Forv)',
-    lines: [
-      { role: 'KL', count: 1 },
-      { role: 'DF', count: 3 },
-      { role: 'OS', count: 2 },
-      { role: 'FV', count: 2 },
-    ],
-  },
-  '8-2-3-2': {
-    size: 8,
-    name: '2 - 3 - 2 (2 Def, 3 OS, 2 Forv)',
-    lines: [
-      { role: 'KL', count: 1 },
-      { role: 'DF', count: 2 },
-      { role: 'OS', count: 3 },
-      { role: 'FV', count: 2 },
-    ],
-  },
-  '8-3-3-1': {
-    size: 8,
-    name: '3 - 3 - 1 (3 Def, 3 OS, 1 Forv)',
-    lines: [
-      { role: 'KL', count: 1 },
-      { role: 'DF', count: 3 },
-      { role: 'OS', count: 3 },
-      { role: 'FV', count: 1 },
-    ],
-  },
-  '8-2-2-3': {
-    size: 8,
-    name: '2 - 2 - 3 (2 Def, 2 OS, 3 Forv)',
-    lines: [
-      { role: 'KL', count: 1 },
-      { role: 'DF', count: 2 },
-      { role: 'OS', count: 2 },
-      { role: 'FV', count: 3 },
-    ],
-  },
-  '8-4-2-1': {
-    size: 8,
-    name: '4 - 2 - 1 (4 Def, 2 OS, 1 Forv)',
-    lines: [
-      { role: 'KL', count: 1 },
-      { role: 'DF', count: 4 },
-      { role: 'OS', count: 2 },
-      { role: 'FV', count: 1 },
-    ],
-  },
-  '8-3-1-3': {
-    size: 8,
-    name: '3 - 1 - 3 (3 Def, 1 OS, 3 Forv)',
-    lines: [
-      { role: 'KL', count: 1 },
-      { role: 'DF', count: 3 },
-      { role: 'OS', count: 1 },
-      { role: 'FV', count: 3 },
-    ],
-  },
+  '8-3-2-2': { size: 8, name: '3 - 2 - 2 (3 Def, 2 OS, 2 Forv)', lines: [{ role: 'KL', count: 1 }, { role: 'DF', count: 3 }, { role: 'OS', count: 2 }, { role: 'FV', count: 2 }] },
+  '8-2-3-2': { size: 8, name: '2 - 3 - 2 (2 Def, 3 OS, 2 Forv)', lines: [{ role: 'KL', count: 1 }, { role: 'DF', count: 2 }, { role: 'OS', count: 3 }, { role: 'FV', count: 2 }] },
+  '8-3-3-1': { size: 8, name: '3 - 3 - 1 (3 Def, 3 OS, 1 Forv)', lines: [{ role: 'KL', count: 1 }, { role: 'DF', count: 3 }, { role: 'OS', count: 3 }, { role: 'FV', count: 1 }] },
+  '8-2-2-3': { size: 8, name: '2 - 2 - 3 (2 Def, 2 OS, 3 Forv)', lines: [{ role: 'KL', count: 1 }, { role: 'DF', count: 2 }, { role: 'OS', count: 2 }, { role: 'FV', count: 3 }] },
+  '8-4-2-1': { size: 8, name: '4 - 2 - 1 (4 Def, 2 OS, 1 Forv)', lines: [{ role: 'KL', count: 1 }, { role: 'DF', count: 4 }, { role: 'OS', count: 2 }, { role: 'FV', count: 1 }] },
+  '8-3-1-3': { size: 8, name: '3 - 1 - 3 (3 Def, 1 OS, 3 Forv)', lines: [{ role: 'KL', count: 1 }, { role: 'DF', count: 3 }, { role: 'OS', count: 1 }, { role: 'FV', count: 3 }] },
 };
 
 const getDefaultShirtNumber = (role: string, index: number) => {
   const cleanRole = role.toUpperCase();
   if (cleanRole.includes('KL')) return 1;
-  if (cleanRole.includes('DF')) return 2 + index; // 2, 3, 4, 5
-  if (cleanRole.includes('OS')) return 6 + index; // 6, 7, 8
-  if (cleanRole.includes('FV')) return 9 + index; // 9, 10, 11
+  if (cleanRole.includes('DF')) return 2 + index;
+  if (cleanRole.includes('OS')) return 6 + index;
+  if (cleanRole.includes('FV')) return 9 + index;
   return 10 + index;
 };
 
@@ -516,9 +361,8 @@ export default function HomePage() {
 
     const { data: goalsData } = await supabase
       .from('player_stats')
-      .select('player_id, value')
-      .eq('match_id', matchId)
-      .eq('stat_id', goalDef.id);
+      .select('player_id, value, stat_id')
+      .eq('match_id', matchId);
 
     if (!goalsData || goalsData.length === 0) {
       setMatchScore({ teamA: 0, teamB: 0, hasGoals: false });
@@ -530,12 +374,16 @@ export default function HomePage() {
     let hasAnyGoal = false;
 
     goalsData.forEach(g => {
-      const val = Number(g.value || 0);
-      if (val > 0) {
-        hasAnyGoal = true;
-        const playerDetail = squad.find(s => s.player_id === g.player_id);
-        if (playerDetail?.team === 'A') scoreA += val;
-        if (playerDetail?.team === 'B') scoreB += val;
+      const defMatch = statDefs.find(d => d.id === g.stat_id || d.key === 'goals');
+      // Sadece gol istatistiğini kontrol et
+      if (g.stat_id === goalDef.id || defMatch?.key === 'goals') {
+        const val = Number(g.value || 0);
+        if (val > 0) {
+          hasAnyGoal = true;
+          const playerDetail = squad.find(s => s.player_id === g.player_id);
+          if (playerDetail?.team === 'A') scoreA += val;
+          if (playerDetail?.team === 'B') scoreB += val;
+        }
       }
     });
 
@@ -659,7 +507,10 @@ export default function HomePage() {
       }
     }
 
-    let statsQuery = supabase.from('player_stats').select('player_id, stat_id, value, match_id');
+    // player_stats ile stat_definitions tablolarını JOIN ederek key bazlı çekiyoruz (UUID uyuşmazlıklarını önlemek için)
+    let statsQuery = supabase
+      .from('player_stats')
+      .select('player_id, value, match_id, stat_definitions(key)');
     
     if (filterMatchId !== 'ALL') {
       statsQuery = statsQuery.eq('match_id', filterMatchId);
@@ -671,17 +522,22 @@ export default function HomePage() {
       return;
     }
 
-    const { data: statsData } = await statsQuery;
+    const { data: statsData, error: statsErr } = await statsQuery;
+    if (statsErr) {
+      console.error("Stats fetch error:", statsErr);
+    }
 
     const grouped: PlayerStatsGrouped[] = activeProfiles.map((prof) => {
       const pStats: Record<string, number> = {};
 
       currentDefs.forEach((d) => {
-        const matchedStats = statsData?.filter(
-          (s) => s.player_id === prof.id && (s.stat_id === d.id || s.stat_id === d.key)
-        ) || [];
+        const matchedStats = statsData?.filter((s: any) => {
+          if (s.player_id !== prof.id) return false;
+          const statKey = s.stat_definitions?.key;
+          return statKey === d.key;
+        }) || [];
 
-        const totalVal = matchedStats.reduce((acc, curr) => acc + Number(curr.value || 0), 0);
+        const totalVal = matchedStats.reduce((acc, curr: any) => acc + Number(curr.value || 0), 0);
         pStats[d.key] = totalVal;
       });
 
@@ -1007,10 +863,9 @@ export default function HomePage() {
     const valB = statKey ? (b.stats[statKey] || 0) : b.totalPoints;
 
     if (valB !== valA) {
-      return valB - valA; // Puana göre büyükten küçüğe
+      return valB - valA;
     }
 
-    // Puanlar eşitse isme göre alfabetik (A-Z)
     const nameA = (a.profile.full_name || a.profile.username || '').toLowerCase();
     const nameB = (b.profile.full_name || b.profile.username || '').toLowerCase();
     return nameA.localeCompare(nameB, 'tr');
