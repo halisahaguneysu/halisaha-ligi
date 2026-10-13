@@ -755,7 +755,6 @@ export default function HomePage() {
       }
     }
 
-    // Saha kadrosu kaydedildiğinde o maçın ödüllerini anında veritabanında hesaplatıp güncelleyelim
     const goalDef = statDefs.find(d => d.key === 'goals' || d.title.toLowerCase() === 'gol');
     if (goalDef) {
       const { data: statsData } = await supabase
@@ -2088,27 +2087,13 @@ export default function HomePage() {
                       <Zap className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-400 uppercase font-semibold">En İyi Forvet (Sahadaki FV/OS)</p>
+                      <p className="text-[10px] text-slate-400 uppercase font-semibold">En İyi Forvet / OS (Sahadaki)</p>
                       <p className="text-sm font-bold text-slate-100">{weeklyAwards.fwd}</p>
                     </div>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/30 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-amber-500/20 text-amber-400 rounded-lg">
-                        <Crown className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-amber-400/90 uppercase font-bold tracking-wider">Lig Lideri (Puan)</p>
-                        <p className="text-sm font-extrabold text-amber-300">
-                          {sortedPlayers[0]?.profile.full_name || 'Henüz Yok'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
                   <div className="p-3 bg-slate-800/40 rounded-xl border border-slate-800 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-amber-500/10 text-amber-400 rounded-lg">
@@ -2184,7 +2169,7 @@ export default function HomePage() {
                   <div key={p.profile.id} className="flex justify-between items-center p-2.5 bg-slate-800/40 rounded-xl">
                     <div className="flex items-center gap-3">
                       <span className={`w-6 text-center font-bold text-sm ${index === 0 ? 'text-amber-400' : 'text-slate-500'}`}>
-                        {index + 1}.
+                        {index === 0 ? '👑' : `${index + 1}.`}
                       </span>
                       <span className="font-medium text-sm">{p.profile.full_name || p.profile.username}</span>
                     </div>
@@ -2214,7 +2199,7 @@ export default function HomePage() {
                   <div key={p.profile.id} className="flex justify-between items-center p-2.5 bg-slate-800/40 rounded-xl">
                     <div className="flex items-center gap-3">
                       <span className={`w-6 text-center font-bold text-sm ${index === 0 ? 'text-amber-400' : 'text-slate-500'}`}>
-                        {index + 1}.
+                        {index === 0 ? '👑' : `${index + 1}.`}
                       </span>
                       <span className="font-medium text-sm">{p.profile.full_name || p.profile.username}</span>
                     </div>
@@ -2311,14 +2296,17 @@ export default function HomePage() {
                       >
                         <td className={`py-3 px-4 whitespace-nowrap sticky left-0 z-20 border-r border-slate-800/60 transition ${isSelf ? 'bg-emerald-950 text-green-300' : 'bg-slate-900'}`}>
                           <div className="flex items-center gap-2.5">
-                            <span className={`text-xs font-mono w-5 ${index < 3 ? 'text-amber-400 font-bold' : 'text-slate-500'}`}>
-                              {index + 1}.
+                            <span className={`text-xs font-mono w-5 flex items-center justify-center ${index === 0 ? 'text-amber-400 font-bold text-base' : index < 3 ? 'text-amber-400 font-bold' : 'text-slate-500'}`}>
+                              {index === 0 ? '👑' : `${index + 1}.`}
                             </span>
                             <div>
                               <div className="flex items-center gap-1.5">
                                 <p className={`text-sm ${isSelf ? 'text-green-300 font-bold' : 'text-slate-100'}`}>
                                   {p.profile.full_name || 'İsimsiz'}
                                 </p>
+                                {index === 0 && (
+                                  <span className="text-[10px]" title="Sezon/Genel 1.si">👑</span>
+                                )}
                                 {p.matchPosition && (
                                   <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1 py-0.2 rounded font-bold uppercase">
                                     {p.matchPosition}
