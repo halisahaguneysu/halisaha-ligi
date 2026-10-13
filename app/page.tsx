@@ -35,6 +35,10 @@ interface Match {
   match_date: string;
   description?: string;
   season_id?: string;
+  mvp_player_id?: string;
+  mvp_goalkeeper_id?: string;
+  mvp_defender_id?: string;
+  mvp_forward_id?: string;
 }
 
 interface MatchPlayerDetail {
@@ -287,7 +291,7 @@ export default function HomePage() {
 
     const { data: matchList } = await supabase
       .from('matches')
-      .select('*')
+      .select('id, match_date, description, season_id, mvp_player_id, mvp_goalkeeper_id, mvp_defender_id, mvp_forward_id')
       .order('match_date', { ascending: false });
 
     if (matchList && matchList.length > 0) {
@@ -751,7 +755,51 @@ export default function HomePage() {
       }
     }
 
-    alert('✅ Seçili maçın saha kadrosu, dizilişi ve forma numaraları başarıyla kaydedildi!');
+    // Saha kadrosu kaydedildiğinde o maçın ödüllerini anında veritabanında hesaplatıp güncelleyelim
+    const goalDef = statDefs.find(d => d.key === 'goals' || d.title.toLowerCase() === 'gol');
+    if (goalDef) {
+      const { data: statsData } = await supabase
+        .from('player_stats')
+        .select('player_id, value, stat_id')
+        .eq('match_id', adminMatchId);
+
+      // Puanları hesapla
+      const playerScores: Record<string, number> = {};
+      fieldPlayers.forEach(fp => { playerScores[fp.player_id] = 0; });
+
+      if (statsData) {
+        statsData.forEach((st: any) => {
+          const defObj = statDefs.find(d => d.id === st.stat_id);
+          if (defObj && playerScores[st.player_id] !== undefined) {
+            playerScores[st.player_id] += Number(st.value || 0) * Number(defObj.point_value || 0);
+          }
+        });
+      }
+
+      let topMvp = null, maxMvpPts = -9999;
+      let topGk = null, maxGkPts = -9999;
+      let topDef = null, maxDefPts = -9999;
+      let topFwd = null, maxFwdPts = -9999;
+
+      fieldPlayers.forEach(fp => {
+        const pts = playerScores[fp.player_id] || 0;
+        const pos = fp.position.toUpperCase();
+
+        if (pts > maxMvpPts) { maxMvpPts = pts; topMvp = fp.player_id; }
+        if (pos.startsWith('KL') && pts > maxGkPts) { maxGkPts = pts; topGk = fp.player_id; }
+        if (pos.startsWith('DF') && pts > maxDefPts) { maxDefPts = pts; topDef = fp.player_id; }
+        if ((pos.startsWith('FV') || pos.startsWith('OS')) && pts > maxFwdPts) { maxFwdPts = pts; topFwd = fp.player_id; }
+      });
+
+      await supabase.from('matches').update({
+        mvp_player_id: topMvp,
+        mvp_goalkeeper_id: topGk,
+        mvp_defender_id: topDef,
+        mvp_forward_id: topFwd
+      }).eq('id', adminMatchId);
+    }
+
+    alert('✅ Seçili maçın saha kadrosu, dizilişi ve ödülleri başarıyla kaydedildi!');
     
     await loadMatchSquadAndAwards(adminMatchId);
     await fetchStatsAndPlayers(selectedSeasonId, selectedFilterMatchId);
@@ -811,6 +859,47 @@ export default function HomePage() {
           value: val,
         });
       }
+    }
+
+    // İstatistikler güncellendiğinde maç ödüllerini de güncelleyelim
+    const { data: squadData } = await supabase.from('match_players').select('player_id, position').eq('match_id', adminMatchId);
+    if (squadData && squadData.length > 0) {
+      const fieldPlayers = squadData.filter(s => s.position && s.position !== 'NONE');
+      const { data: statsData } = await supabase.from('player_stats').select('player_id, value, stat_id').eq('match_id', adminMatchId);
+
+      const playerScores: Record<string, number> = {};
+      fieldPlayers.forEach(fp => { playerScores[fp.player_id] = 0; });
+
+      if (statsData) {
+        statsData.forEach((st: any) => {
+          const defObj = statDefs.find(d => d.id === st.stat_id);
+          if (defObj && playerScores[st.player_id] !== undefined) {
+            playerScores[st.player_id] += Number(st.value || 0) * Number(defObj.point_value || 0);
+          }
+        });
+      }
+
+      let topMvp = null, maxMvpPts = -9999;
+      let topGk = null, maxGkPts = -9999;
+      let topDef = null, maxDefPts = -9999;
+      let topFwd = null, maxFwdPts = -9999;
+
+      fieldPlayers.forEach(fp => {
+        const pts = playerScores[fp.player_id] || 0;
+        const pos = fp.position.toUpperCase();
+
+        if (pts > maxMvpPts) { maxMvpPts = pts; topMvp = fp.player_id; }
+        if (pos.startsWith('KL') && pts > maxGkPts) { maxGkPts = pts; topGk = fp.player_id; }
+        if (pos.startsWith('DF') && pts > maxDefPts) { maxDefPts = pts; topDef = fp.player_id; }
+        if ((pos.startsWith('FV') || pos.startsWith('OS')) && pts > maxFwdPts) { maxFwdPts = pts; topFwd = fp.player_id; }
+      });
+
+      await supabase.from('matches').update({
+        mvp_player_id: topMvp,
+        mvp_goalkeeper_id: topGk,
+        mvp_defender_id: topDef,
+        mvp_forward_id: topFwd
+      }).eq('id', adminMatchId);
     }
 
     setSaveSuccess(true);
@@ -901,7 +990,48 @@ export default function HomePage() {
     };
   };
 
+  // Kalıcı ödül verilerinden sezonluk veya genel en iyileri hesaplayan fonksiyon
+  const getPermanentSeasonAwards = () => {
+    const relevantMatches = selectedSeasonId === 'ALL'
+      ? matches
+      : matches.filter(m => m.season_id === selectedSeasonId);
+
+    const mvpCounts: Record<string, number> = {};
+    const gkCounts: Record<string, number> = {};
+    const defCounts: Record<string, number> = {};
+    const fwdCounts: Record<string, number> = {};
+
+    relevantMatches.forEach(m => {
+      if (m.mvp_player_id) mvpCounts[m.mvp_player_id] = (mvpCounts[m.mvp_player_id] || 0) + 1;
+      if (m.mvp_goalkeeper_id) gkCounts[m.mvp_goalkeeper_id] = (gkCounts[m.mvp_goalkeeper_id] || 0) + 1;
+      if (m.mvp_defender_id) defCounts[m.mvp_defender_id] = (defCounts[m.mvp_defender_id] || 0) + 1;
+      if (m.mvp_forward_id) fwdCounts[m.mvp_forward_id] = (fwdCounts[m.mvp_forward_id] || 0) + 1;
+    });
+
+    const getTopWinner = (counts: Record<string, number>) => {
+      let topId = '';
+      let maxCount = 0;
+      Object.entries(counts).forEach(([id, count]) => {
+        if (count > maxCount) {
+          maxCount = count;
+          topId = id;
+        }
+      });
+      if (!topId) return { name: 'Henüz Yok', count: 0 };
+      const prof = allProfiles.find(p => p.id === topId);
+      return { name: prof?.full_name || prof?.username || 'Bilinmiyor', count: maxCount };
+    };
+
+    return {
+      mvp: getTopWinner(mvpCounts),
+      gk: getTopWinner(gkCounts),
+      def: getTopWinner(defCounts),
+      fwd: getTopWinner(fwdCounts),
+    };
+  };
+
   const weeklyAwards = getWeeklyAutomatedAwards();
+  const permanentAwards = getPermanentSeasonAwards();
   const isOverall = selectedFilterMatchId === 'ALL';
 
   const filteredStatDefs = statDefs.filter((d) => {
@@ -1977,6 +2107,62 @@ export default function HomePage() {
                         <p className="text-[10px] text-amber-400/90 uppercase font-bold tracking-wider">Lig Lideri (Puan)</p>
                         <p className="text-sm font-extrabold text-amber-300">
                           {sortedPlayers[0]?.profile.full_name || 'Henüz Yok'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-slate-800/40 rounded-xl border border-slate-800 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-amber-500/10 text-amber-400 rounded-lg">
+                        <Star className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-slate-400 uppercase font-semibold">Maçın Adamı (MVP)</p>
+                        <p className="text-sm font-bold text-slate-100">
+                          {permanentAwards.mvp.name} <span className="text-xs text-amber-400 font-mono">({permanentAwards.mvp.count} kez)</span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-slate-800/40 rounded-xl border border-slate-800 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg">
+                        <Shield className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-slate-400 uppercase font-semibold">En İyi Kaleci</p>
+                        <p className="text-sm font-bold text-slate-100">
+                          {permanentAwards.gk.name} <span className="text-xs text-emerald-400 font-mono">({permanentAwards.gk.count} kez)</span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-slate-800/40 rounded-xl border border-slate-800 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-500/10 text-blue-400 rounded-lg">
+                        <Shield className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-slate-400 uppercase font-semibold">En İyi Defans</p>
+                        <p className="text-sm font-bold text-slate-100">
+                          {permanentAwards.def.name} <span className="text-xs text-blue-400 font-mono">({permanentAwards.def.count} kez)</span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-slate-800/40 rounded-xl border border-slate-800 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-amber-500/10 text-amber-400 rounded-lg">
+                        <Zap className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-slate-400 uppercase font-semibold">En İyi Forvet / OS</p>
+                        <p className="text-sm font-bold text-slate-100">
+                          {permanentAwards.fwd.name} <span className="text-xs text-amber-400 font-mono">({permanentAwards.fwd.count} kez)</span>
                         </p>
                       </div>
                     </div>
