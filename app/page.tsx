@@ -195,6 +195,40 @@ export default function HomePage() {
     hasGoals: false
   });
 
+  // Sezona özgü stat puanlarını veritabanından dinamik yükleyen fonksiyon
+  const loadStatDefsForSeason = async (seasonId?: string, allSeasonsList: Season[] = seasons) => {
+    const { data: defs } = await supabase
+      .from('stat_definitions')
+      .select('id, key, title, point_value, category, display_order, is_active')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true });
+
+    const baseDefs = (defs && defs.length > 0) ? defs : DEFAULT_STAT_DEFS;
+
+    let targetSeasonId = seasonId;
+    if (!targetSeasonId || targetSeasonId === 'ALL') {
+      const activeSeason = allSeasonsList.find(s => s.is_active) || allSeasonsList[0];
+      targetSeasonId = activeSeason?.id;
+    }
+
+    if (targetSeasonId) {
+      const { data: seasonPoints } = await supabase
+        .from('season_stat_points')
+        .select('stat_id, point_value')
+        .eq('season_id', targetSeasonId);
+
+      if (seasonPoints && seasonPoints.length > 0) {
+        const pointMap = new Map(seasonPoints.map(sp => [sp.stat_id, Number(sp.point_value)]));
+        return baseDefs.map(def => ({
+          ...def,
+          point_value: pointMap.has(def.id) ? pointMap.get(def.id) : (def.point_value ?? 0)
+        }));
+      }
+    }
+
+    return baseDefs;
+  };
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
@@ -224,8 +258,20 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    fetchStatsAndPlayers(selectedSeasonId, selectedFilterMatchId);
-  }, [selectedSeasonId, selectedFilterMatchId]);
+    async function updateData() {
+      let targetSeasonId = selectedSeasonId;
+      if (selectedFilterMatchId !== 'ALL') {
+        const m = matches.find(match => match.id === selectedFilterMatchId);
+        if (m?.season_id) {
+          targetSeasonId = m.season_id;
+        }
+      }
+      const currentDefs = await loadStatDefsForSeason(targetSeasonId, seasons);
+      setStatDefs(currentDefs);
+      await fetchStatsAndPlayers(selectedSeasonId, selectedFilterMatchId, currentDefs);
+    }
+    updateData();
+  }, [selectedSeasonId, selectedFilterMatchId, matches, seasons]);
 
   useEffect(() => {
     if (adminMatchId && allProfiles.length > 0 && !isCustomTacticsMode) {
@@ -258,28 +304,24 @@ export default function HomePage() {
   const loadInitialData = async () => {
     setLoading(true);
 
-    const { data: defs } = await supabase
-      .from('stat_definitions')
-      .select('id, key, title, point_value, category, display_order, is_active')
-      .eq('is_active', true)
-      .order('display_order', { ascending: true });
-
-    const activeDefs = (defs && defs.length > 0) ? defs : DEFAULT_STAT_DEFS;
-    setStatDefs(activeDefs);
-
     const { data: seasonList } = await supabase
       .from('seasons')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (seasonList && seasonList.length > 0) {
-      setSeasons(seasonList);
-      const activeSeason = seasonList.find(s => s.is_active) || seasonList[0];
-      setSelectedSeasonId(activeSeason.id);
-      setDeletingSeasonId(seasonList[0].id);
-    } else {
-      setSeasons([]);
+    const activeSeasons = seasonList || [];
+    setSeasons(activeSeasons);
+
+    let initialSeasonId = 'ALL';
+    if (activeSeasons.length > 0) {
+      const activeSeason = activeSeasons.find(s => s.is_active) || activeSeasons[0];
+      initialSeasonId = activeSeason.id;
+      setSelectedSeasonId(initialSeasonId);
+      setDeletingSeasonId(activeSeasons[0].id);
     }
+
+    const activeDefs = await loadStatDefsForSeason(initialSeasonId, activeSeasons);
+    setStatDefs(activeDefs);
 
     const { data: profs } = await supabase
       .from('profiles')
@@ -301,7 +343,7 @@ export default function HomePage() {
       }
     }
 
-    await fetchStatsAndPlayers(selectedSeasonId, 'ALL', activeDefs, playerProfiles, matchList || []);
+    await fetchStatsAndPlayers(initialSeasonId, 'ALL', activeDefs, playerProfiles, matchList || []);
   };
 
   const loadMatchSquadAndAwards = async (matchId: string) => {
@@ -519,13 +561,17 @@ export default function HomePage() {
           if (!totalsMap[row.player_id]) {
             totalsMap[row.player_id] = { stats: {}, totalPoints: 0 };
           }
-          totalsMap[row.player_id].totalPoints += Number(row.total_points || 0);
           
           if (row.stats) {
             Object.entries(row.stats).forEach(([k, val]) => {
               totalsMap[row.player_id].stats[k] = (totalsMap[row.player_id].stats[k] || 0) + Number(val || 0);
             });
           }
+        });
+
+        // Toplam puanı sezonun güncel dinamik stat puanları ile hesapla
+        Object.keys(totalsMap).forEach((pId) => {
+          totalsMap[pId].totalPoints = calculateTotalPoints(totalsMap[pId].stats, currentDefs);
         });
       }
     } else {
