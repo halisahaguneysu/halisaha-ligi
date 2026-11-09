@@ -195,7 +195,6 @@ export default function HomePage() {
     hasGoals: false
   });
 
-  // Sezona özgü stat puanlarını veritabanından dinamik yükleyen fonksiyon
   const loadStatDefsForSeason = async (seasonId?: string, allSeasonsList: Season[] = seasons) => {
     const { data: defs } = await supabase
       .from('stat_definitions')
@@ -569,7 +568,6 @@ export default function HomePage() {
           }
         });
 
-        // Toplam puanı sezonun güncel dinamik stat puanları ile hesapla
         Object.keys(totalsMap).forEach((pId) => {
           totalsMap[pId].totalPoints = calculateTotalPoints(totalsMap[pId].stats, currentDefs);
         });
@@ -1012,6 +1010,20 @@ export default function HomePage() {
     return nameA.localeCompare(nameB, 'tr');
   };
 
+  // GENEL / SEZONLUK LİDERLER VE SEÇİMLER İÇİN ALFABETİK SIRALAMA YARDIMCISI (Kralıklar için)
+  const sortPlayersAlphabeticallyOnly = (a: PlayerStatsGrouped, b: PlayerStatsGrouped, statKey: string) => {
+    const valA = a.stats[statKey] || 0;
+    const valB = b.stats[statKey] || 0;
+
+    if (valB !== valA) {
+      return valB - valA;
+    }
+
+    const nameA = (a.profile.full_name || a.profile.username || '').toLowerCase();
+    const nameB = (b.profile.full_name || b.profile.username || '').toLowerCase();
+    return nameA.localeCompare(nameB, 'tr');
+  };
+
   const sortedPlayers = [...playersData].sort((a, b) => sortPlayersAlphabetically(a, b));
 
   const getWeeklyAutomatedAwards = () => {
@@ -1019,7 +1031,18 @@ export default function HomePage() {
       return { mvp: 'Belirlenmedi', gk: 'Belirlenmedi', def: 'Belirlenmedi', fwd: 'Belirlenmedi' };
     }
 
-    const topMvp = sortedPlayers[0]?.profile.full_name || 'Belirlenmedi';
+    const maxPoints = sortedPlayers[0]?.totalPoints ?? 0;
+    const topPlayers = sortedPlayers.filter(p => p.totalPoints === maxPoints);
+    const mvpNames = topPlayers.map(p => p.profile.full_name || p.profile.username || 'Bilinmiyor');
+    
+    let topMvp = 'Belirlenmedi';
+    if (mvpNames.length === 1) {
+      topMvp = mvpNames[0];
+    } else if (mvpNames.length === 2) {
+      topMvp = `${mvpNames[0]} ve ${mvpNames[1]}`;
+    } else if (mvpNames.length > 2) {
+      topMvp = `${mvpNames.slice(0, -1).join(', ')} ve ${mvpNames[mvpNames.length - 1]}`;
+    }
 
     const gkPlayers = sortedPlayers.filter(p => p.matchPosition?.startsWith('KL'));
     const defPlayers = sortedPlayers.filter(p => p.matchPosition?.startsWith('DF'));
@@ -2200,6 +2223,7 @@ export default function HomePage() {
             </div>
           </div>
 
+          {/* GOL KRALLIĞI (HAFTALIKTA TAÇ YOK, SEZONLUK/GENELDE VEYA KURALLARA GÖRE DÜZENLENDİ) */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2 text-green-400">
@@ -2208,28 +2232,41 @@ export default function HomePage() {
               </div>
             </div>
             <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
-              {[...playersData]
-                .filter(p => (p.stats['goals'] || 0) > 0)
-                .sort((a, b) => sortPlayersAlphabetically(a, b, 'goals'))
-                .map((p, index) => (
-                  <div key={p.profile.id} className="flex justify-between items-center p-2.5 bg-slate-800/40 rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <span className={`w-6 text-center font-bold text-sm ${index === 0 ? 'text-amber-400' : 'text-slate-500'}`}>
-                        {index === 0 ? '👑' : `${index + 1}.`}
+              {(() => {
+                const goalFiltered = [...playersData]
+                  .filter(p => (p.stats['goals'] || 0) > 0)
+                  .sort((a, b) => sortPlayersAlphabeticallyOnly(a, b, 'goals'));
+
+                const maxGoals = goalFiltered.length > 0 ? (goalFiltered[0].stats['goals'] || 0) : 0;
+                
+                return goalFiltered.map((p, index) => {
+                  // Sezonluk/Genel tabloda (isOverall) çoklu birinciye kral tacı, haftalıkta ise istenildiği üzere sadece normal sıra veya tek lider
+                  const isFirstGoal = isOverall 
+                    ? ((p.stats['goals'] || 0) === maxGoals && maxGoals > 0)
+                    : (index === 0 && (p.stats['goals'] || 0) === maxGoals && maxGoals > 0);
+
+                  return (
+                    <div key={p.profile.id} className="flex justify-between items-center p-2.5 bg-slate-800/40 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <span className={`w-6 text-center font-bold text-sm ${isFirstGoal ? 'text-amber-400' : 'text-slate-500'}`}>
+                          {isFirstGoal ? '👑' : `${index + 1}.`}
+                        </span>
+                        <span className="font-medium text-sm">{p.profile.full_name || p.profile.username}</span>
+                      </div>
+                      <span className="font-bold font-mono text-green-400 bg-green-500/10 px-3 py-1 rounded-lg text-sm">
+                        {p.stats['goals'] || 0} Gol
                       </span>
-                      <span className="font-medium text-sm">{p.profile.full_name || p.profile.username}</span>
                     </div>
-                    <span className="font-bold font-mono text-green-400 bg-green-500/10 px-3 py-1 rounded-lg text-sm">
-                      {p.stats['goals'] || 0} Gol
-                    </span>
-                  </div>
-                ))}
+                  );
+                });
+              })()}
               {playersData.filter(p => (p.stats['goals'] || 0) > 0).length === 0 && (
                 <p className="text-xs text-slate-500 text-center py-4">Henüz gol atılmadı.</p>
               )}
             </div>
           </div>
 
+          {/* ASİST KRALLIĞI */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2 text-blue-400">
@@ -2238,22 +2275,33 @@ export default function HomePage() {
               </div>
             </div>
             <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
-              {[...playersData]
-                .filter(p => (p.stats['assists'] || 0) > 0)
-                .sort((a, b) => sortPlayersAlphabetically(a, b, 'assists'))
-                .map((p, index) => (
-                  <div key={p.profile.id} className="flex justify-between items-center p-2.5 bg-slate-800/40 rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <span className={`w-6 text-center font-bold text-sm ${index === 0 ? 'text-amber-400' : 'text-slate-500'}`}>
-                        {index === 0 ? '👑' : `${index + 1}.`}
+              {(() => {
+                const assistFiltered = [...playersData]
+                  .filter(p => (p.stats['assists'] || 0) > 0)
+                  .sort((a, b) => sortPlayersAlphabeticallyOnly(a, b, 'assists'));
+
+                const maxAssists = assistFiltered.length > 0 ? (assistFiltered[0].stats['assists'] || 0) : 0;
+
+                return assistFiltered.map((p, index) => {
+                  const isFirstAssist = isOverall 
+                    ? ((p.stats['assists'] || 0) === maxAssists && maxAssists > 0)
+                    : (index === 0 && (p.stats['assists'] || 0) === maxAssists && maxAssists > 0);
+
+                  return (
+                    <div key={p.profile.id} className="flex justify-between items-center p-2.5 bg-slate-800/40 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <span className={`w-6 text-center font-bold text-sm ${isFirstAssist ? 'text-amber-400' : 'text-slate-500'}`}>
+                          {isFirstAssist ? '👑' : `${index + 1}.`}
+                        </span>
+                        <span className="font-medium text-sm">{p.profile.full_name || p.profile.username}</span>
+                      </div>
+                      <span className="font-bold font-mono text-blue-400 bg-blue-500/10 px-3 py-1 rounded-lg text-sm">
+                        {p.stats['assists'] || 0} Asist
                       </span>
-                      <span className="font-medium text-sm">{p.profile.full_name || p.profile.username}</span>
                     </div>
-                    <span className="font-bold font-mono text-blue-400 bg-blue-500/10 px-3 py-1 rounded-lg text-sm">
-                      {p.stats['assists'] || 0} Asist
-                    </span>
-                  </div>
-                ))}
+                  );
+                });
+              })()}
               {playersData.filter(p => (p.stats['assists'] || 0) > 0).length === 0 && (
                 <p className="text-xs text-slate-500 text-center py-4">Henüz asist yapılmadı.</p>
               )}
@@ -2326,82 +2374,86 @@ export default function HomePage() {
                     </td>
                   </tr>
                 ) : (
-                  sortedPlayers.map((p, index) => {
-                    const isSelf = p.profile.id === currentUser?.id || p.profile.email === currentUser?.email;
+                  (() => {
+                    const maxTablePoints = sortedPlayers.length > 0 ? sortedPlayers[0].totalPoints : 0;
+                    return sortedPlayers.map((p, index) => {
+                      const isSelf = p.profile.id === currentUser?.id || p.profile.email === currentUser?.email;
+                      const isFirst = p.totalPoints === maxTablePoints;
 
-                    return (
-                      <tr
-                        key={p.profile.id}
-                        className={`transition duration-150 ${
-                          isSelf
-                            ? 'bg-green-500/10 hover:bg-green-500/20 font-semibold'
-                            : index % 2 === 0
-                            ? 'bg-slate-900/60 hover:bg-slate-800/50'
-                            : 'bg-slate-800/20 hover:bg-slate-800/50'
-                        }`}
-                      >
-                        <td className={`py-3 px-4 whitespace-nowrap sticky left-0 z-20 border-r border-slate-800/60 transition ${isSelf ? 'bg-emerald-950 text-green-300' : 'bg-slate-900'}`}>
-                          <div className="flex items-center gap-2.5">
-                            <span className={`text-xs font-mono w-5 flex items-center justify-center ${index === 0 ? 'text-amber-400 font-bold text-base' : index < 3 ? 'text-amber-400 font-bold' : 'text-slate-500'}`}>
-                              {index === 0 ? '👑' : `${index + 1}.`}
-                            </span>
-                            <div>
-                              <div className="flex items-center gap-1.5">
-                                <p className={`text-sm ${isSelf ? 'text-green-300 font-bold' : 'text-slate-100'}`}>
-                                  {p.profile.full_name || 'İsimsiz'}
-                                </p>
-                                {index === 0 && (
-                                  <span className="text-[10px]" title="Sezon/Genel 1.si">👑</span>
-                                )}
-                                {p.matchPosition && (
-                                  <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1 py-0.2 rounded font-bold uppercase">
-                                    {p.matchPosition}
-                                  </span>
-                                )}
+                      return (
+                        <tr
+                          key={p.profile.id}
+                          className={`transition duration-150 ${
+                            isSelf
+                              ? 'bg-green-500/10 hover:bg-green-500/20 font-semibold'
+                              : index % 2 === 0
+                              ? 'bg-slate-900/60 hover:bg-slate-800/50'
+                              : 'bg-slate-800/20 hover:bg-slate-800/50'
+                          }`}
+                        >
+                          <td className={`py-3 px-4 whitespace-nowrap sticky left-0 z-20 border-r border-slate-800/60 transition ${isSelf ? 'bg-emerald-950 text-green-300' : 'bg-slate-900'}`}>
+                            <div className="flex items-center gap-2.5">
+                              <span className={`text-xs font-mono w-5 flex items-center justify-center ${isFirst ? 'text-amber-400 font-bold text-base' : index < 3 ? 'text-amber-400 font-bold' : 'text-slate-500'}`}>
+                                {isFirst ? '👑' : `${index + 1}.`}
+                              </span>
+                              <div>
+                                <div className="flex items-center gap-1.5">
+                                  <p className={`text-sm ${isSelf ? 'text-green-300 font-bold' : 'text-slate-100'}`}>
+                                    {p.profile.full_name || 'İsimsiz'}
+                                  </p>
+                                  {isFirst && (
+                                    <span className="text-[10px]" title="Sezon/Genel 1.si">👑</span>
+                                  )}
+                                  {p.matchPosition && (
+                                    <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1 py-0.2 rounded font-bold uppercase">
+                                      {p.matchPosition}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-slate-500">@{p.profile.username}</p>
                               </div>
-                              <p className="text-[11px] text-slate-500">@{p.profile.username}</p>
                             </div>
-                          </div>
-                        </td>
+                          </td>
 
-                        {isOverall ? (
-                          <>
-                            <td className="py-3 px-3 text-center font-mono text-base font-black text-amber-300 bg-amber-500/5">
-                              {p.totalPoints}
-                            </td>
-                            <td className="py-3 px-3 text-center font-mono text-sm text-slate-200">
-                              {p.stats['matches'] || 0}
-                            </td>
-                            <td className="py-3 px-3 text-center font-mono text-sm text-emerald-400 font-semibold">
-                              {p.stats['wins'] || 0}
-                            </td>
-                            <td className="py-3 px-3 text-center font-mono text-sm text-rose-400 font-semibold">
-                              {p.stats['losses'] || 0}
-                            </td>
-                          </>
-                        ) : (
-                          <>
-                            <td className="py-3 px-3 text-center font-mono text-base font-black text-amber-300 bg-amber-500/5">
-                              {p.totalPoints}
-                            </td>
-                            {filteredStatDefs.map((def) => {
-                              const val = p.stats[def.key] || 0;
-                              return (
-                                <td
-                                  key={def.id}
-                                  className={`py-3 px-3 text-center font-mono text-sm ${
-                                    val > 0 ? (isSelf ? 'text-green-300 font-bold' : 'text-slate-200') : 'text-slate-600'
-                                  }`}
-                                >
-                                  {val}
-                                </td>
-                              );
-                            })}
-                          </>
-                        )}
-                      </tr>
-                    );
-                  })
+                          {isOverall ? (
+                            <>
+                              <td className="py-3 px-3 text-center font-mono text-base font-black text-amber-300 bg-amber-500/5">
+                                {p.totalPoints}
+                              </td>
+                              <td className="py-3 px-3 text-center font-mono text-sm text-slate-200">
+                                {p.stats['matches'] || 0}
+                              </td>
+                              <td className="py-3 px-3 text-center font-mono text-sm text-emerald-400 font-semibold">
+                                {p.stats['wins'] || 0}
+                              </td>
+                              <td className="py-3 px-3 text-center font-mono text-sm text-rose-400 font-semibold">
+                                {p.stats['losses'] || 0}
+                              </td>
+                            </>
+                          ) : (
+                            <>
+                              <td className="py-3 px-3 text-center font-mono text-base font-black text-amber-300 bg-amber-500/5">
+                                {p.totalPoints}
+                              </td>
+                              {filteredStatDefs.map((def) => {
+                                const val = p.stats[def.key] || 0;
+                                return (
+                                  <td
+                                    key={def.id}
+                                    className={`py-3 px-3 text-center font-mono text-sm ${
+                                      val > 0 ? (isSelf ? 'text-green-300 font-bold' : 'text-slate-200') : 'text-slate-600'
+                                    }`}
+                                  >
+                                    {val}
+                                  </td>
+                                );
+                              })}
+                            </>
+                          )}
+                        </tr>
+                      );
+                    });
+                  })()
                 )}
               </tbody>
             </table>
